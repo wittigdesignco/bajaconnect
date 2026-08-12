@@ -1949,6 +1949,18 @@ document.addEventListener('click',e=>{
   if(e.target.closest('[data-fbsend]')){
     const t=$('#fbText');
     if(!t||!t.value.trim()){ toast('Write a note first.'); return; }
+    const tagEl=document.querySelector('[data-fbtag].on');
+    const payload={
+      type:tagEl?tagEl.textContent.trim():'Idea',
+      text:t.value.trim(),
+      name:state.user?state.user.name:'Anonymous',
+      authorId:(FB&&FB.auth().currentUser)?FB.auth().currentUser.uid:null,
+      createdAt:new Date().toISOString(),
+      page:location.href
+    };
+    if(FBdb && FB && FB.auth().currentUser){
+      FBdb.collection('feedback').add(payload).catch(()=>{});
+    }
     closeSheet(); closePanel();
     toast('Thank you! Your feedback helps Baja Connect get better.');
   }
