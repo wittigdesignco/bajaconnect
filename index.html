@@ -1750,7 +1750,18 @@ function renderAuth(){
       <button class="btn btn-primary" id="authSendCode">Continue</button>
       <div class="auth-div">or</div>
       <button class="btn-social" data-social="Google"><span class="soc-g" aria-hidden="true"></span>Continue with Google</button>
+      <button class="btn-social" id="authEmailBtn"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><rect x="2" y="4" width="20" height="16" rx="2"/><path d="m22 7-10 6L2 7"/></svg>Continue with Email</button>
       <p class="auth-terms">By continuing you agree to Baja Connect's community guidelines. We'll send a one-time code by SMS or WhatsApp.</p>`;
+  }
+  if(auth.step==='email'){
+    h=`<h2 style="margin-top:30px">Sign in with email</h2>
+      <p class="sub">We\u2019ll sign you in \u2014 or create your account automatically if you\u2019re new.</p>
+      <div class="auth-field"><label>Email</label>
+        <input type="email" id="authEmail" placeholder="you@example.com" autocomplete="email" value="${auth.email||''}"></div>
+      <div class="auth-field"><label>Password</label>
+        <input type="password" id="authPass" placeholder="At least 6 characters" autocomplete="current-password"></div>
+      <button class="btn btn-primary" id="authEmailGo">Continue</button>
+      <button class="btn btn-ghost" id="authEmailBack" style="width:100%;margin-top:8px">Use phone or Google instead</button>`;
   }
   if(auth.step==='code'){
     h=`<h2>Enter your code</h2>
@@ -1807,13 +1818,38 @@ function renderAuth(){
       }).catch(err=>{
         toast(err&&err.code==='auth/unauthorized-domain'
           ? 'This domain isn\u2019t authorized in Firebase yet \u2014 using demo sign-in.'
-          : 'Sign-in didn\u2019t complete \u2014 using demo mode.');
+          : 'Google sign-in didn\u2019t complete ('+((err&&err.code)||'unknown')+') \u2014 using demo mode.');
         auth.name=auth.name||'Jeremy W.'; auth.step='profile'; renderAuth();
       });
     } else {
       auth.name=auth.name||'Jeremy W.'; auth.step='profile'; renderAuth();
     }
   }));
+  const eb=$('#authEmailBtn'); if(eb) eb.addEventListener('click',()=>{ auth.step='email'; renderAuth(); });
+  const ebk=$('#authEmailBack'); if(ebk) ebk.addEventListener('click',()=>{ auth.step='phone'; renderAuth(); });
+  const ego=$('#authEmailGo'); if(ego) ego.addEventListener('click',()=>{
+    const em=($('#authEmail')&&$('#authEmail').value.trim())||'';
+    const pw=($('#authPass')&&$('#authPass').value)||'';
+    auth.email=em;
+    if(!/.+@.+\..+/.test(em)){ toast('Enter a valid email address.'); return; }
+    if(pw.length<6){ toast('Password needs at least 6 characters.'); return; }
+    if(!FB){ auth.name=auth.name||em.split('@')[0]; auth.step='profile'; renderAuth(); return; }
+    ego.textContent='One moment\u2026';
+    FB.auth().signInWithEmailAndPassword(em,pw)
+      .then(()=>{ auth.name=auth.name||em.split('@')[0]; auth.step='profile'; renderAuth(); })
+      .catch(err=>{
+        if(err && (err.code==='auth/user-not-found' || err.code==='auth/invalid-credential' || err.code==='auth/invalid-login-credentials')){
+          FB.auth().createUserWithEmailAndPassword(em,pw)
+            .then(()=>{ auth.name=auth.name||em.split('@')[0]; auth.step='profile'; renderAuth(); toast('Account created \u2014 welcome!'); })
+            .catch(e2=>{ ego.textContent='Continue';
+              toast(e2.code==='auth/email-already-in-use'?'That email exists \u2014 check your password.':(e2.code==='auth/weak-password'?'Password too weak \u2014 try a longer one.':'Couldn\u2019t sign in \u2014 try again.')); });
+        } else if(err && err.code==='auth/wrong-password'){
+          ego.textContent='Continue'; toast('Wrong password for that email.');
+        } else {
+          ego.textContent='Continue'; toast('Couldn\u2019t sign in \u2014 '+((err&&err.code)||'try again.'));
+        }
+      });
+  });
   const otps=[...b.querySelectorAll('[data-otp]')];
   if(otps.length){ otps[0].focus();
     otps.forEach((inp,i)=>inp.addEventListener('input',()=>{
