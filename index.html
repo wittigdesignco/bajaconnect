@@ -206,6 +206,34 @@ img{max-width:100%}
   width:auto;padding:14px 24px;border-radius:999px;background:var(--ink);color:#fff;font-size:15.5px;font-weight:600;
   display:flex;align-items:center;gap:9px;box-shadow:0 8px 28px rgba(0,0,0,.32);min-height:52px;letter-spacing:-.005em}
 
+/* ============ UNIFIED MAP BAR ============ */
+#mapBar{position:absolute;left:50%;transform:translateX(-50%);bottom:calc(var(--nav-h) + 14px);z-index:30;
+  display:flex;align-items:stretch;height:54px;border-radius:999px;
+  background:rgba(255,255,255,.95);backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px);
+  border:1px solid rgba(0,0,0,.06);box-shadow:0 6px 24px rgba(24,26,28,.2);overflow:hidden;
+  max-width:calc(100vw - 16px)}
+.mb-left{display:flex;align-items:center;padding:0 2px 0 6px}
+.mb-ic{width:44px;height:54px;display:flex;align-items:center;justify-content:center;color:var(--ink);flex-shrink:0;transition:background .12s}
+.mb-ic:hover{background:var(--surface)}
+.mb-ic svg{width:20px;height:20px}
+.mb-ic.active{color:#1A73E8}
+.mb-sep{width:1px;height:22px;background:var(--line);align-self:center;flex-shrink:0}
+.mb-seg-wrap{display:flex;background:var(--surface);border-radius:999px;margin:0 8px;padding:3px;flex-shrink:0}
+.mb-seg{padding:0 13px;height:34px;border-radius:999px;font-size:13.5px;font-weight:600;color:var(--ink-2);display:flex;align-items:center;white-space:nowrap;transition:background .12s,color .12s}
+.mb-seg.on{background:var(--ink);color:#fff}
+.mb-report{background:var(--ink);color:#fff;font-weight:600;font-size:15px;padding:0 20px;display:flex;align-items:center;white-space:nowrap;letter-spacing:-.005em;flex-shrink:0;transition:background .12s}
+.mb-report:hover{background:#000}
+.sat-short,.rep-short{display:inline}
+.sat-long,.rep-long{display:none}
+@media (min-width:768px){
+  #mapBar{height:56px}
+  .mb-ic{height:56px}
+  .sat-long,.rep-long{display:inline}
+  .sat-short,.rep-short{display:none}
+  .mb-report{padding:0 28px;font-size:15.5px}
+  .mb-left{padding:0 4px 0 8px}
+}
+
 /* ============ BOTTOM NAV (mobile) ============ */
 #bottomNav{grid-area:bottomnav;display:flex;background:var(--paper);border-top:1px solid var(--line);
   height:var(--nav-h);padding:6px 6px calc(6px + env(safe-area-inset-bottom));z-index:40}
@@ -344,6 +372,9 @@ img{max-width:100%}
 .rm-field input:hover,.rm-field textarea:hover{border-color:var(--ink-3)}
 .rm-field textarea{min-height:104px;resize:vertical}
 .minimap{aspect-ratio:1/1;height:auto;max-height:min(62vh,540px);border-radius:var(--r-md);position:relative;overflow:hidden;border:1px solid var(--line-2);background:#EAE4D8;z-index:0}
+.rm-body.step-map{max-width:none;padding:0;display:flex;flex-direction:column}
+.rm-inner{max-width:640px;width:100%;margin:0 auto;padding:18px 20px 0}
+.step-map .minimap.mm-full{flex:1;min-height:300px;height:auto;aspect-ratio:auto;max-height:none;border-radius:0;border-left:none;border-right:none}
 .bullseye{animation:pulseB 2s ease-in-out infinite;transform-origin:center}
 @keyframes pulseB{0%,100%{transform:scale(1)}50%{transform:scale(1.06)}}
 .photo-drop{border:1.5px dashed var(--line-2);border-radius:var(--r-md);background:var(--paper);padding:26px;
@@ -484,7 +515,7 @@ a.btn{text-decoration:none}
   #bottomNav{display:none}
   .fab-report{display:none}
   .map-topbar{top:82px;left:50%;right:auto;transform:translateX(-50%);padding:0;max-width:none}
-  .map-controls{bottom:26px;right:22px}
+  #mapBar{bottom:22px}
   #listView{padding:104px 44px 44px}
   #listView .list-inner{max-width:700px;margin:0 auto}
   #sheetScrim,#bottomSheet{display:none!important}
@@ -592,21 +623,19 @@ a.btn{text-decoration:none}
         <div class="chips" id="chipRow" role="group" aria-label="Map filters"></div>
       </div>
 
-      <button class="loc-btn" id="locBtn" aria-label="Center the map on my location" title="My location">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><circle cx="12" cy="12" r="7"/><circle cx="12" cy="12" r="2.5" fill="currentColor" stroke="none"/><path d="M12 1v4M12 19v4M1 12h4M19 12h4"/></svg>
-      </button>
-
-      <div class="style-toggle" role="group" aria-label="Map style">
-        <button class="on" id="styleMap">Map</button>
-        <button id="styleSat">Satellite</button>
+      <div id="mapBar" role="toolbar" aria-label="Map controls">
+        <div class="mb-left">
+          <button class="mb-ic" id="zoomOut" aria-label="Zoom out"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" aria-hidden="true"><path d="M5 12h14"/></svg></button>
+          <i class="mb-sep" aria-hidden="true"></i>
+          <button class="mb-ic" id="zoomIn" aria-label="Zoom in"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" aria-hidden="true"><path d="M12 5v14"/><path d="M5 12h14"/></svg></button>
+          <div class="mb-seg-wrap" role="group" aria-label="Map style">
+            <button class="mb-seg on" id="styleMap">Map</button>
+            <button class="mb-seg" id="styleSat"><span class="sat-long">Satellite</span><span class="sat-short">Sat</span></button>
+          </div>
+          <button class="mb-ic" id="locBtn" aria-label="Center the map on my location" title="My location"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><circle cx="12" cy="12" r="7"/><circle cx="12" cy="12" r="2.5" fill="currentColor" stroke="none"/><path d="M12 1v4M12 19v4M1 12h4M19 12h4"/></svg></button>
+        </div>
+        <button class="mb-report" data-open-report><span class="rep-long">Report an Animal</span><span class="rep-short">Report</span></button>
       </div>
-
-      <div class="map-controls">
-        <button class="zoom-btn" id="zoomIn" aria-label="Zoom in"><svg class="i" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 5v14"/><path d="M5 12h14"/></svg></button>
-        <button class="zoom-btn" id="zoomOut" aria-label="Zoom out"><svg class="i" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12h14"/></svg></button>
-      </div>
-
-      <button class="fab-report" data-open-report>Report an Animal</button>
     </div>
 
     <!-- List views (rescues / fundraisers / community) -->
@@ -767,6 +796,9 @@ const POSTS = [
   comments:[]}
 ];
 const board={composer:false, tag:'Question'};
+const REPORTS=[];
+const ANIMAL_LABEL={dog:'Dog',cat:'Cat',horse:'Horse',donkey:'Donkey',cow:'Cow',other:'Animal',unsure:'Animal'};
+const SITU_LABEL={hurt:'Hurt or sick',stray:'Stray, seems okay',lost:'Possible lost pet',danger:'Unsafe situation'};
 
 const EVENTS = [
   {title:'Adoption Day at Plaza Mijares', when:'Saturday, Aug 15 · 10 AM – 2 PM', emoji:'🎪',
@@ -1016,6 +1048,7 @@ function renderMarkers(){
   FUNDRAISERS.forEach(f=>{ if(state.filters.fund) items.push({type:'fund',id:f.id,lat:f.lat,lng:f.lng,name:f.pin,color:COLORS.fund.c}); });
   VETS.forEach(v=>{ if(state.filters.vet) items.push({type:'vetc',id:v.id,lat:v.lat,lng:v.lng,name:v.name,color:v.is24?'#253238':COLORS.vet.c,cross:true}); });
   ORGS.forEach(o=>{ if(state.filters.org) items.push({type:'org',id:o.id,lat:o.lat,lng:o.lng,name:o.name,color:COLORS.org.c}); });
+  REPORTS.forEach(r=>{ if(r.location && state.filters[r.status]) items.push({type:'report',id:r.id,lat:r.location.lat,lng:r.location.lng,name:'Reported '+(ANIMAL_LABEL[r.animal]||'Animal'),color:COLORS[r.status].c}); });
   items.forEach(m=>{
     const sel=state.selected===m.id, sc=sel?1.25:1;
     const mk=new google.maps.Marker({position:{lat:m.lat,lng:m.lng},map:map,title:m.name,
@@ -1188,6 +1221,7 @@ function openDetail(kind, id){
   if(kind==='fund'){ state.selected=id; html=fundDetail(FUNDRAISERS.find(f=>f.id===id)); }
   if(kind==='vetc'){ state.selected=id; html=vetDetail(VETS.find(v=>v.id===id)); }
   if(kind==='org'){ state.selected=id; html=orgDetail(ORGS.find(o=>o.id===id)); }
+  if(kind==='report'){ state.selected=id; html=reportDetail(REPORTS.find(r=>r.id===id)); }
   renderMarkers();
   if(isDesktop()){
     $('#panelContent').innerHTML = `<div class="panel-scroll">${html}</div>`;
@@ -1451,10 +1485,12 @@ function renderReport(){
   }
 
   if(s===2){
-    body=`<h3>Where did you see it?</h3><p class="hint">Tap the map to mark the exact spot, or use your location.</p>
-      <div class="minimap" id="miniMap" aria-label="Map — tap to place a pin"></div>
-      <div style="margin-top:14px"><button class="btn btn-secondary" id="useLoc">Use My Current Location</button></div>
-      <p id="locStatus" style="margin-top:12px;font-weight:700;color:var(--ok);display:${report.pin?'block':'none'}">Location set — looks good!</p>`;
+    body=`<div class="rm-inner"><h3>Where did you see it?</h3><p class="hint" style="margin-bottom:10px">Tap the map to mark the exact spot, or use your location.</p></div>
+      <div class="minimap mm-full" id="miniMap" aria-label="Map — tap to place a pin"></div>
+      <div class="rm-inner" style="padding-top:16px;padding-bottom:10px">
+        <button class="btn btn-secondary" id="useLoc">Use My Current Location</button>
+        <p id="locStatus" style="margin-top:10px;font-weight:700;color:var(--ok);display:${report.pin?'block':'none'}">Location set — looks good!</p>
+      </div>`;
     foot=`<button class="btn btn-secondary" id="rmBack">← Back</button>
           <button class="btn btn-primary" id="rmNext" ${report.pin?'':'disabled style="opacity:.45"'}>Next →</button>`;
   }
@@ -1467,9 +1503,9 @@ function renderReport(){
         </button>
       </div>
       <div class="rm-field"><label>Anything else volunteers should know? <span class="optional">(optional)</span></label>
-        <textarea placeholder="e.g. Friendly, limping on back leg, hides under the blue truck…"></textarea></div>
+        <textarea id="repNote" placeholder="e.g. Friendly, limping on back leg, hides under the blue truck…"></textarea></div>
       <div class="rm-field"><label>Your phone or WhatsApp <span class="optional">(optional)</span></label>
-        <input type="tel" placeholder="So a volunteer can reach you with questions"></div>`;
+        <input type="tel" id="repPhone" placeholder="So a volunteer can reach you with questions"></div>`;
     foot=`<button class="btn btn-secondary" id="rmBack">← Back</button>
           <button class="btn btn-primary" id="rmNext">Send Report</button>`;
   }
@@ -1484,6 +1520,7 @@ function renderReport(){
     foot=`<button class="btn btn-primary" id="rmDone">Back to the Map</button>`;
   }
 
+  $('#rmBody').classList.toggle('step-map', s===2);
   $('#rmBody').innerHTML=body; $('#rmFoot').innerHTML=foot; $('#rmBody').scrollTop=0;
 
   document.querySelectorAll('[data-animal]').forEach(b=>b.addEventListener('click',()=>{report.animal=b.dataset.animal;renderReport();}));
@@ -1503,7 +1540,10 @@ function renderReport(){
     const ul=$('#useLoc'); if(ul) ul.addEventListener('click',()=>{ const ll={lat:23.0611,lng:-109.6958}; miniMap.setCenter(ll); miniMap.setZoom(16); place(ll); });
   }
   const pb=$('#photoBtn'); if(pb) pb.addEventListener('click',()=>{ report.photo=!report.photo; renderReport(); });
-  const nx=$('#rmNext'); if(nx) nx.addEventListener('click',()=>{ if(nx.hasAttribute('disabled'))return; report.step++; renderReport(); });
+  const nx=$('#rmNext'); if(nx) nx.addEventListener('click',()=>{ if(nx.hasAttribute('disabled'))return;
+    if(report.step===3){ const noteEl=$('#repNote'), phEl=$('#repPhone');
+      submitReport(noteEl?noteEl.value.trim():'', phEl?phEl.value.trim():''); }
+    report.step++; renderReport(); });
   const bk=$('#rmBack'); if(bk) bk.addEventListener('click',()=>{ report.step--; renderReport(); });
   const cc=$('#rmCancel'); if(cc) cc.addEventListener('click',closeReport);
   const dn=$('#rmDone'); if(dn) dn.addEventListener('click',()=>{ closeReport(); setView('map'); toast('Your report is live on the map.'); });
@@ -1652,6 +1692,8 @@ function refreshAuthUI(){
     <div class="switch-row">Community replies <button class="switch" role="switch" aria-checked="false" aria-label="Community replies"></button></div>
     <div style="border-top:1px solid var(--line)"></div>
     <button class="pop-btn" data-toast="Idioma: próximamente español.">Language · ${u.lang}</button>
+    <a class="pop-btn" href="privacy.html" style="text-decoration:none">Privacy Policy</a>
+    <a class="pop-btn" href="guidelines.html" style="text-decoration:none">Community Guidelines</a>
     <button class="pop-btn" id="signOutBtn" style="color:#D93A3B">Sign out</button>`;
     const so=$('#signOutBtn'); if(so) so.addEventListener('click',()=>{ if(FB) FB.auth().signOut().catch(()=>{}); state.user=null; refreshAuthUI(); document.querySelectorAll('.popover').forEach(x=>x.classList.remove('open')); toast('Signed out.'); });
   } else {
@@ -1659,7 +1701,9 @@ function refreshAuthUI(){
     <div style="padding:16px"><p style="font-size:14px;color:var(--ink-2);margin-bottom:12px">Sign in to report animals, post to the community, and follow rescues.</p>
     <button class="btn btn-primary" id="popSignIn">Sign In / Create Account</button></div>
     <button class="pop-btn" data-static="about" style="border-top:1px solid var(--line)">About Baja Connect</button>
-    <button class="pop-btn" data-static="feedback">Help Us Improve</button>`;
+    <button class="pop-btn" data-static="feedback">Help Us Improve</button>
+    <a class="pop-btn" href="privacy.html" style="text-decoration:none">Privacy Policy</a>
+    <a class="pop-btn" href="guidelines.html" style="text-decoration:none">Community Guidelines</a>`;
     const si=$('#popSignIn'); if(si) si.addEventListener('click',()=>{ document.querySelectorAll('.popover').forEach(x=>x.classList.remove('open')); openAuth(); });
   }
 }
@@ -1725,7 +1769,10 @@ function aboutHtml(){
     <div class="d-actions">
       <button class="btn btn-primary" data-open-report>Report an Animal</button>
       <button class="btn btn-secondary" data-static="feedback">Help Us Improve</button>
-    </div>`;
+    </div>
+    <p style="margin-top:18px;font-size:13.5px;color:var(--ink-3);text-align:center">
+      <a href="privacy.html" style="color:var(--ink-2)">Privacy Policy</a> · <a href="guidelines.html" style="color:var(--ink-2)">Community Guidelines</a>
+    </p>`;
 }
 function feedbackHtml(){
   return `
@@ -1789,13 +1836,81 @@ $('#tbAccount').addEventListener('click',e=>{ e.stopPropagation(); togglePop('#p
 document.addEventListener('click',e=>{
   if(!e.target.closest('.popover') && !e.target.closest('.tb-icon')) document.querySelectorAll('.popover').forEach(x=>x.classList.remove('open'));
 });
-$('#markRead').addEventListener('click',()=>{ const b=$('#tbBadge'); if(b) b.remove(); toast('All caught up.'); });
+$('#markRead').addEventListener('click',()=>{
+  const b=$('#tbBadge'); if(b) b.remove();
+  document.querySelectorAll('#popBell .pop-item').forEach(x=>x.remove());
+  if(!$('#bellEmpty')){
+    const d=document.createElement('div');
+    d.id='bellEmpty';
+    d.style.cssText='padding:30px 16px;text-align:center;color:var(--ink-3);font-size:14px';
+    d.textContent='You\u2019re all caught up.';
+    $('#popBell').appendChild(d);
+  }
+  toast('All caught up.');
+});
 document.addEventListener('click',e=>{
   const sw=e.target.closest('.switch');
   if(sw){ sw.classList.toggle('on'); sw.setAttribute('aria-checked',sw.classList.contains('on')); }
   const pb=e.target.closest('.pop-btn[data-toast]');
   if(pb) toast(pb.dataset.toast);
 });
+
+/* ================= LIVE REPORTS ================= */
+function submitReport(note,phone){
+  const doc={
+    animal:report.animal||'unsure',
+    situation:report.situation||'stray',
+    location:report.pin?{lat:report.pin.lat,lng:report.pin.lng}:null,
+    note:note||null,
+    contact:phone||null,
+    status:(report.situation==='stray')?'rescue':'help',
+    authorId:(FB&&FB.auth().currentUser)?FB.auth().currentUser.uid:'demo',
+    authorName:state.user?state.user.name:'A neighbor',
+    createdAt:new Date().toISOString()
+  };
+  if(FBdb && FB && FB.auth().currentUser){
+    FBdb.collection('reports').add(doc)
+      .then(ref=>addReportLocal(ref.id,doc))
+      .catch(()=>{ addReportLocal('local-'+Date.now(),doc); toast('Shown on your map — cloud save failed, try again later.'); });
+  } else {
+    addReportLocal('local-'+Date.now(),doc);
+    if(FBdb) toast('Demo session — sign in with Google so reports save to the cloud.');
+  }
+}
+function addReportLocal(id,d){
+  if(REPORTS.some(r=>r.id===id)) return;
+  REPORTS.unshift({id:id,...d});
+  renderMarkers();
+  if(map && d.location){ map.panTo(d.location); if(map.getZoom()<15) map.setZoom(15); }
+}
+function loadReports(){
+  if(!FBdb) return;
+  FBdb.collection('reports').orderBy('createdAt','desc').limit(200).get().then(snap=>{
+    snap.forEach(dsnap=>{ const d=dsnap.data();
+      if(!REPORTS.some(r=>r.id===dsnap.id)) REPORTS.push({id:dsnap.id,...d});
+    });
+    renderMarkers();
+    if(REPORTS.length) console.log('Live reports loaded:',REPORTS.length);
+  }).catch(()=>{});
+}
+function reportDetail(r){
+  const gmaps=r.location?`https://www.google.com/maps/dir/?api=1&destination=${r.location.lat},${r.location.lng}`:null;
+  const when=(r.createdAt||'').slice(0,10);
+  return `
+    <div class="d-photo" style="background:linear-gradient(135deg,#F28C45,#F05D5E);height:110px">${I.paw}</div>
+    <div class="d-head"><h2 style="font-size:21px">Reported ${ANIMAL_LABEL[r.animal]||'Animal'}</h2>${badge(r.status)}</div>
+    <div class="d-loc">${I.pin} ${SITU_LABEL[r.situation]||'Reported'}</div>
+    ${r.note?`<p class="d-desc" style="margin-top:10px">${String(r.note).replace(/</g,'&lt;')}</p>`:''}
+    <div class="d-facts">
+      <div class="fact"><b>Reported by</b><span>${String(r.authorName||'A neighbor').replace(/</g,'&lt;')}</span></div>
+      <div class="fact"><b>Date</b><span>${when}</span></div>
+    </div>
+    <div class="d-actions">
+      <button class="btn btn-primary" data-auth data-toast="Thank you! Nearby volunteers have been notified.">I Can Help</button>
+      ${gmaps?`<a class="btn btn-secondary" href="${gmaps}" target="_blank" rel="noopener">Navigate</a>`:''}
+    </div>
+    <p style="margin-top:14px;font-size:13px;color:var(--ink-3)">Community report via Baja Connect.</p>`;
+}
 
 /* ================= TOAST ================= */
 let toastTimer;
@@ -1820,6 +1935,7 @@ if(FB){
     }
   });
   loadDirectories();
+  loadReports();
 }
 
 </script>
