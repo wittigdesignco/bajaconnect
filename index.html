@@ -75,6 +75,9 @@ img{max-width:100%}
 .tb-badge{position:absolute;top:8px;right:9px;width:8px;height:8px;border-radius:50%;background:var(--help);border:2px solid #fff;z-index:1}
 .tb-avatar{width:34px;height:34px;border-radius:50%;background:var(--ink);color:#fff;font-size:12.5px;font-weight:600;display:flex;align-items:center;justify-content:center;letter-spacing:.03em}
 .tb-report{margin-left:6px;background:var(--ink);color:#fff;border-radius:999px;padding:10px 18px;font-size:14px;font-weight:600;white-space:nowrap;flex-shrink:0}
+@media (min-width:1100px){
+  .tb-report{padding:14px 30px;font-size:16px;font-weight:700;box-shadow:0 4px 14px rgba(0,0,0,.22)}
+}
 .tb-report:hover{background:#000}
 .tb-search{display:flex;align-items:center;overflow:hidden;width:0;transition:width .22s ease}
 #topbar.searching .tb-search{width:200px}
@@ -159,7 +162,7 @@ img{max-width:100%}
 
 /* ============ MAP ============ */
 #mapView{position:absolute;inset:0;display:flex;flex-direction:column}
-.map-topbar{position:absolute;top:66px;left:0;right:0;z-index:30;padding:6px 14px;
+.map-topbar{position:absolute;top:76px;left:0;right:0;z-index:30;padding:6px 14px;
   display:flex;flex-direction:column;gap:9px;pointer-events:none}
 .map-topbar>*{pointer-events:auto}
 .brandbar{display:flex;align-items:center;gap:10px;background:rgba(255,255,255,.92);backdrop-filter:blur(12px);
@@ -167,7 +170,7 @@ img{max-width:100%}
 .brandbar .logo-mark{width:30px;height:30px;padding:6px;border-radius:8px}
 .brandbar strong{font-size:15.5px;font-weight:700;letter-spacing:-.015em;display:block;line-height:1.25}
 .brandbar span{font-size:12.5px;color:var(--ink-2);display:block;line-height:1.25}
-.chips{display:flex;gap:7px;overflow-x:auto;padding:2px 2px 6px;-webkit-overflow-scrolling:touch;scrollbar-width:none;pointer-events:none}
+.chips{display:flex;gap:7px;overflow-x:auto;padding:2px 2px 6px;-webkit-overflow-scrolling:touch;scrollbar-width:none;cursor:grab;touch-action:pan-x}
 .chips::-webkit-scrollbar{display:none}
 .chip{pointer-events:auto;flex-shrink:0;display:flex;align-items:center;gap:7px;padding:8px 14px;border-radius:999px;
   background:rgba(255,255,255,.94);backdrop-filter:blur(8px);border:1px solid rgba(0,0,0,.08);font-size:13.5px;font-weight:500;min-height:38px;
@@ -207,31 +210,32 @@ img{max-width:100%}
   display:flex;align-items:center;gap:9px;box-shadow:0 8px 28px rgba(0,0,0,.32);min-height:52px;letter-spacing:-.005em}
 
 /* ============ UNIFIED MAP BAR ============ */
-#mapBar{position:absolute;left:50%;transform:translateX(-50%);bottom:calc(var(--nav-h) + 14px);z-index:30;
-  display:flex;align-items:stretch;height:54px;border-radius:999px;
-  background:rgba(255,255,255,.95);backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px);
-  border:1px solid rgba(0,0,0,.06);box-shadow:0 6px 24px rgba(24,26,28,.2);overflow:hidden;
-  max-width:calc(100vw - 16px)}
-.mb-left{display:flex;align-items:center;padding:0 2px 0 6px}
-.mb-ic{width:44px;height:54px;display:flex;align-items:center;justify-content:center;color:var(--ink);flex-shrink:0;transition:background .12s}
+#mapBar{position:absolute;left:50%;transform:translateX(-50%);bottom:6px;z-index:30;
+  display:flex;align-items:center;justify-content:space-between;height:56px;padding:0 8px;
+  border-radius:999px;background:rgba(255,255,255,.95);backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px);
+  border:1px solid rgba(0,0,0,.06);box-shadow:0 6px 24px rgba(24,26,28,.2);
+  width:calc(100vw - 16px);max-width:520px}
+.mb-side{display:flex;align-items:center;gap:2px}
+.mb-ic{width:46px;height:46px;border-radius:50%;display:flex;align-items:center;justify-content:center;color:var(--ink);flex-shrink:0;transition:background .12s,color .12s}
 .mb-ic:hover{background:var(--surface)}
 .mb-ic svg{width:20px;height:20px}
 .mb-ic.active{color:#1A73E8}
-.mb-sep{width:1px;height:22px;background:var(--line);align-self:center;flex-shrink:0}
-.mb-seg-wrap{display:flex;background:var(--surface);border-radius:999px;margin:0 8px;padding:3px;flex-shrink:0}
-.mb-seg{padding:0 13px;height:34px;border-radius:999px;font-size:13.5px;font-weight:600;color:var(--ink-2);display:flex;align-items:center;white-space:nowrap;transition:background .12s,color .12s}
-.mb-seg.on{background:var(--ink);color:#fff}
-.mb-report{background:var(--ink);color:#fff;font-weight:600;font-size:15px;padding:0 20px;display:flex;align-items:center;white-space:nowrap;letter-spacing:-.005em;flex-shrink:0;transition:background .12s}
+.mb-ic.on{background:var(--ink);color:#fff}
+.mb-report{position:absolute;left:50%;top:50%;transform:translate(-50%,-54%);height:64px;padding:0 34px;min-width:172px;justify-content:center;
+  border-radius:999px;background:var(--ink);color:#fff;font-weight:700;font-size:16px;letter-spacing:-.005em;
+  display:flex;align-items:center;white-space:nowrap;box-shadow:0 10px 28px rgba(0,0,0,.32);transition:background .12s,transform .08s}
 .mb-report:hover{background:#000}
-.sat-short,.rep-short{display:inline}
-.sat-long,.rep-long{display:none}
+.mb-report:active{transform:translate(-50%,-54%) scale(.98)}
+.rep-short{display:inline}
+.rep-long{display:none}
+@media (max-width:1099px){
+  .mb-side:first-of-type{order:2}   /* zoom moves right */
+  .mb-side:last-of-type{order:1}    /* layers + locate move left */
+}
 @media (min-width:768px){
-  #mapBar{height:56px}
-  .mb-ic{height:56px}
-  .sat-long,.rep-long{display:inline}
-  .sat-short,.rep-short{display:none}
-  .mb-report{padding:0 28px;font-size:15.5px}
-  .mb-left{padding:0 4px 0 8px}
+  .rep-long{display:inline}
+  .rep-short{display:none}
+  .mb-report{padding:0 52px;min-width:260px;font-size:16.5px}
 }
 
 /* ============ BOTTOM NAV (mobile) ============ */
@@ -514,8 +518,14 @@ a.btn{text-decoration:none}
   #detailPanel.open{display:flex}
   #bottomNav{display:none}
   .fab-report{display:none}
-  .map-topbar{top:82px;left:50%;right:auto;transform:translateX(-50%);padding:0;max-width:none}
-  #mapBar{bottom:22px}
+  .map-topbar{top:92px;left:50%;right:auto;transform:translateX(-50%);padding:0;max-width:none}
+  /* desktop: corner controls, Report lives in the top bar */
+  #mapBar{display:contents}
+  .mb-side{position:absolute;z-index:30;display:flex;background:rgba(255,255,255,.95);backdrop-filter:blur(10px);
+    border:1px solid rgba(0,0,0,.06);border-radius:999px;box-shadow:var(--shadow-2);padding:4px}
+  .mb-side:first-of-type{right:22px;bottom:22px;flex-direction:column-reverse}
+  .mb-side:last-of-type{left:22px;bottom:22px;flex-direction:column-reverse}
+  .mb-report{display:none}
   #listView{padding:104px 44px 44px}
   #listView .list-inner{max-width:700px;margin:0 auto}
   #sheetScrim,#bottomSheet{display:none!important}
@@ -624,17 +634,15 @@ a.btn{text-decoration:none}
       </div>
 
       <div id="mapBar" role="toolbar" aria-label="Map controls">
-        <div class="mb-left">
+        <div class="mb-side">
           <button class="mb-ic" id="zoomOut" aria-label="Zoom out"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" aria-hidden="true"><path d="M5 12h14"/></svg></button>
-          <i class="mb-sep" aria-hidden="true"></i>
           <button class="mb-ic" id="zoomIn" aria-label="Zoom in"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" aria-hidden="true"><path d="M12 5v14"/><path d="M5 12h14"/></svg></button>
-          <div class="mb-seg-wrap" role="group" aria-label="Map style">
-            <button class="mb-seg on" id="styleMap">Map</button>
-            <button class="mb-seg" id="styleSat"><span class="sat-long">Satellite</span><span class="sat-short">Sat</span></button>
-          </div>
-          <button class="mb-ic" id="locBtn" aria-label="Center the map on my location" title="My location"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><circle cx="12" cy="12" r="7"/><circle cx="12" cy="12" r="2.5" fill="currentColor" stroke="none"/><path d="M12 1v4M12 19v4M1 12h4M19 12h4"/></svg></button>
         </div>
         <button class="mb-report" data-open-report><span class="rep-long">Report an Animal</span><span class="rep-short">Report</span></button>
+        <div class="mb-side">
+          <button class="mb-ic" id="styleToggle" aria-label="Toggle satellite view" aria-pressed="false" title="Satellite view"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m12 2 9 4.9-9 4.9-9-4.9L12 2z"/><path d="m3 11.9 9 4.9 9-4.9"/><path d="m3 16.9 9 4.9 9-4.9"/></svg></button>
+          <button class="mb-ic" id="locBtn" aria-label="Center the map on my location" title="My location"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><circle cx="12" cy="12" r="7"/><circle cx="12" cy="12" r="2.5" fill="currentColor" stroke="none"/><path d="M12 1v4M12 19v4M1 12h4M19 12h4"/></svg></button>
+        </div>
       </div>
     </div>
 
@@ -1080,12 +1088,11 @@ $('#locBtn').addEventListener('click',()=>{
 function setMapStyle(sat){
   if(!map) return;
   satOn=sat;
-  $('#styleMap').classList.toggle('on',!sat);
-  $('#styleSat').classList.toggle('on',sat);
+  const t=$('#styleToggle');
+  if(t){ t.classList.toggle('on',sat); t.setAttribute('aria-pressed',sat?'true':'false'); t.title=sat?'Map view':'Satellite view'; }
   map.setMapTypeId(sat?'hybrid':'roadmap');
 }
-$('#styleMap').addEventListener('click',()=>setMapStyle(false));
-$('#styleSat').addEventListener('click',()=>setMapStyle(true));
+$('#styleToggle').addEventListener('click',()=>setMapStyle(!satOn));
 $('#zoomIn').addEventListener('click',()=>map&&map.setZoom(map.getZoom()+1));
 $('#zoomOut').addEventListener('click',()=>map&&map.setZoom(map.getZoom()-1));
 
@@ -1437,6 +1444,21 @@ function filterList(){
     h.style.display=any?'':'none';
   });
 }
+
+/* chip row: mouse drag-to-scroll */
+(function(){
+  const row=$('#chipRow'); if(!row) return;
+  let down=null, moved=false;
+  row.addEventListener('pointerdown',e=>{ down={x:e.clientX,sl:row.scrollLeft}; moved=false; });
+  row.addEventListener('pointermove',e=>{
+    if(!down) return;
+    const dx=e.clientX-down.x;
+    if(Math.abs(dx)>6){ moved=true; row.scrollLeft=down.sl-dx; }
+  });
+  const end=()=>{ down=null; };
+  row.addEventListener('pointerup',end); row.addEventListener('pointercancel',end); row.addEventListener('pointerleave',end);
+  row.addEventListener('click',e=>{ if(moved){ e.stopPropagation(); e.preventDefault(); moved=false; } },true);
+})();
 
 /* ================= NAVIGATION ================= */
 function setView(v){
