@@ -57,12 +57,12 @@ img{max-width:100%}
 .micro{font-size:12px;font-weight:600;letter-spacing:.08em;text-transform:uppercase;color:var(--ink-3)}
 
 /* frosted glass band behind nav + category pills */
-#topGlass{position:fixed;top:0;left:0;right:0;height:140px;z-index:28;pointer-events:none;
+#topGlass{position:fixed;top:0;left:0;right:0;height:105px;z-index:28;pointer-events:none;
   background:rgba(247,246,242,.4);
-  backdrop-filter:blur(14px) saturate(1.1);-webkit-backdrop-filter:blur(14px) saturate(1.1);
-  -webkit-mask-image:linear-gradient(to bottom,#000 62%,transparent);
-  mask-image:linear-gradient(to bottom,#000 62%,transparent)}
-@media (min-width:1100px){#topGlass{height:158px}}
+  backdrop-filter:blur(16px) saturate(1.15);-webkit-backdrop-filter:blur(16px) saturate(1.15);
+  border-bottom:1px solid rgba(255,255,255,.55);
+  box-shadow:0 6px 22px rgba(24,26,28,.07)}
+@media (min-width:1100px){#topGlass{height:114px}}
 
 /* ============ TOP PILL BAR ============ */
 #topbar{position:fixed;top:14px;left:50%;transform:translateX(-50%);z-index:48;display:flex;align-items:center;gap:2px;
@@ -546,6 +546,38 @@ a.btn{text-decoration:none}
   .tb-logo{flex:1;min-width:0}
   #topbar.searching .tb-search{width:150px}
 }
+/* ============ LIQUID GLASS TREATMENT ============ */
+#topbar{
+  background:rgba(255,255,255,.42)!important;
+  backdrop-filter:blur(18px) saturate(1.5);-webkit-backdrop-filter:blur(18px) saturate(1.5);
+  border:1px solid rgba(255,255,255,.65);
+  box-shadow:0 8px 32px rgba(24,26,28,.14),inset 0 1px 1.5px rgba(255,255,255,.85),0 0 20px rgba(255,255,255,.35)}
+.chip{
+  background:rgba(255,255,255,.45);
+  backdrop-filter:blur(14px) saturate(1.4);-webkit-backdrop-filter:blur(14px) saturate(1.4);
+  border:1px solid rgba(255,255,255,.65);
+  box-shadow:0 4px 16px rgba(24,26,28,.1),inset 0 1px 1px rgba(255,255,255,.85);
+  color:var(--ink)}
+.chip:not(.on){background:rgba(255,255,255,.22);color:var(--ink-2);border-color:rgba(255,255,255,.45)}
+#mapBar{
+  background:rgba(255,255,255,.42);
+  backdrop-filter:blur(18px) saturate(1.5);-webkit-backdrop-filter:blur(18px) saturate(1.5);
+  border:1px solid rgba(255,255,255,.65);
+  box-shadow:0 10px 32px rgba(24,26,28,.18),inset 0 1px 1.5px rgba(255,255,255,.85),0 0 24px rgba(255,255,255,.3)}
+.mb-seg-wrap{background:rgba(37,50,56,.08)}
+.mb-report,.tb-report{
+  background:rgba(30,41,47,.82);
+  backdrop-filter:blur(12px) saturate(1.2);-webkit-backdrop-filter:blur(12px) saturate(1.2);
+  border:1px solid rgba(255,255,255,.32);
+  box-shadow:0 10px 28px rgba(0,0,0,.3),inset 0 1px 1px rgba(255,255,255,.45)}
+.mb-report:hover,.tb-report:hover{background:rgba(18,26,30,.9)}
+@media (min-width:1100px){
+  .mb-side{background:rgba(255,255,255,.42);
+    backdrop-filter:blur(18px) saturate(1.5);-webkit-backdrop-filter:blur(18px) saturate(1.5);
+    border:1px solid rgba(255,255,255,.65);
+    box-shadow:0 8px 28px rgba(24,26,28,.16),inset 0 1px 1.5px rgba(255,255,255,.85)}
+}
+
 </style>
 </head>
 <body>
