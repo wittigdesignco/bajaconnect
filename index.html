@@ -622,8 +622,8 @@ a.btn{text-decoration:none}
 <div class="popover" id="popAccount" role="dialog" aria-label="Account">
   <div class="pop-head" style="gap:11px;justify-content:flex-start"><span class="tb-avatar" style="width:38px;height:38px;font-size:13.5px">JW</span>
     <span>Jeremy<br><small style="font-weight:400;color:var(--ink-2)">San José del Cabo</small></span></div>
-  <button class="pop-btn" data-toast="Profile page — coming in the next iteration.">My Profile</button>
-  <button class="pop-btn" data-toast="Your reports and posts — coming in the next iteration.">My Reports &amp; Posts</button>
+  <button class="pop-btn" data-static="profile">My Profile</button>
+  <button class="pop-btn" data-static="mystuff">My Reports &amp; Posts</button>
   <button class="pop-btn" data-static="about">About Baja Connect</button>
   <button class="pop-btn" data-static="feedback">Help Us Improve</button>
   <div class="pop-section">Notification settings</div>
@@ -1431,7 +1431,7 @@ function loadPosts(){
         mine=uid?ls.docs.some(x=>x.id===uid):false;
         likeCount=ls.size-(mine?1:0);
       }catch(e){}
-      real.push({id:d.id, who:v.authorName||'Member', tag:v.tag||'Update', when:relTime(v.createdAt),
+      real.push({id:d.id, authorId:v.authorId||null, who:v.authorName||'Member', tag:v.tag||'Update', when:relTime(v.createdAt),
         likes:likeCount, hearts:0, liked:mine, open:false, text:v.text||'', comments:null, real:true});
     }
     // newest community posts on top, demo seed posts below
@@ -1465,6 +1465,7 @@ function postHtml(p){
       <div class="avatar init" style="width:40px;height:40px;border-radius:50%">${initials(p.who)}</div>
       <div style="flex:1;min-width:0"><b style="font-size:15px">${p.who}</b>
         <div style="font-size:13px;color:var(--ink-3)">${p.when} · <span class="post-tag ${tagClass(p.tag)}">${p.tag}</span></div></div>
+      ${((p.authorId&&p.authorId===myUid())||(!p.real&&state.user&&p.who===state.user.name))?`<button class="link-quiet" data-delpost="${p.id}" style="color:#D93A3B;flex-shrink:0">Delete</button>`:''}
     </div>
     <p style="font-size:15px;line-height:1.55">${p.text}</p>
     <div class="post-stats">
@@ -1505,7 +1506,7 @@ function bindBoard(){
         authorId:FB.auth().currentUser.uid,
         authorName:np.who, tag:np.tag, text:txt,
         createdAt:new Date().toISOString()
-      }).then(ref=>{ np.id=ref.id; np.real=true; toast('Posted to the community board.'); })
+      }).then(ref=>{ np.id=ref.id; np.real=true; np.authorId=FB.auth().currentUser.uid; toast('Posted to the community board.'); })
         .catch(()=>toast('Shown here — cloud save failed, try again later.'));
     } else if(FBdb){
       toast('Demo session — sign in with Google so posts reach the shared board.');
@@ -1834,8 +1835,8 @@ function refreshAuthUI(){
   if(u){
     pop.innerHTML=`<div class="pop-head" style="gap:11px;justify-content:flex-start"><span class="tb-avatar" style="width:38px;height:38px;font-size:13.5px">${initials(u.name)}</span>
       <span>${u.name}<br><small style="font-weight:400;color:var(--ink-2)">${u.hood}</small></span></div>
-    <button class="pop-btn" data-toast="Profile page — coming in the next iteration.">My Profile</button>
-    <button class="pop-btn" data-toast="Your reports and posts — coming in the next iteration.">My Reports &amp; Posts</button>
+    <button class="pop-btn" data-static="profile">My Profile</button>
+    <button class="pop-btn" data-static="mystuff">My Reports &amp; Posts</button>
     <button class="pop-btn" data-static="about">About Baja Connect</button>
     <button class="pop-btn" data-static="feedback">Help Us Improve</button>
     <div class="pop-section">Notification settings</div>
@@ -1897,6 +1898,74 @@ document.addEventListener('click',e=>{
   if(sh) openShare(sh.dataset.shareitem);
 });
 
+/* ================= OWN CONTENT: delete + my stuff + profile ================= */
+function myUid(){ return (FB&&FB.auth().currentUser)?FB.auth().currentUser.uid:null; }
+function inMyStuff(){ return !!document.querySelector('[data-mystuff-marker]'); }
+function deleteReport(id){
+  const i=REPORTS.findIndex(r=>r.id===id); if(i<0) return;
+  const r=REPORTS[i];
+  if(FBdb && !String(id).startsWith('local-') && r.authorId===myUid()){
+    FBdb.collection('reports').doc(id).delete().catch(()=>{});
+  }
+  REPORTS.splice(i,1); renderMarkers(); toast('Report deleted.');
+  if(inMyStuff()) openStatic(myStuffHtml()); else { closeSheet(); closePanel(); }
+}
+function deletePost(id){
+  const i=POSTS.findIndex(p=>p.id===id); if(i<0) return;
+  const p=POSTS[i];
+  if(FBdb && p.real && p.authorId===myUid()){
+    FBdb.collection('posts').doc(id).delete().catch(()=>{});
+  }
+  POSTS.splice(i,1);
+  if(state.view==='community') renderList('community');
+  toast('Post deleted.');
+  if(inMyStuff()) openStatic(myStuffHtml());
+}
+function myStuffHtml(){
+  const uid=myUid(); const name=state.user?state.user.name:null;
+  const myReports=REPORTS.filter(r=>r.authorId&&uid&&r.authorId===uid);
+  const myPosts=POSTS.filter(p=>(p.authorId&&uid&&p.authorId===uid)||(!p.real&&name&&p.who===name));
+  const rrows=myReports.map(r=>`<div class="fact"><span style="max-width:58%"><b style="display:block;font-size:14.5px;color:var(--ink)">${ANIMAL_LABEL[r.animal]||'Animal'} · ${SITU_LABEL[r.situation]||''}</b><span style="font-size:13px;color:var(--ink-3)">${(r.createdAt||'').slice(0,10)}</span></span><button class="link-quiet" data-delreport="${r.id}" style="color:#D93A3B">Delete</button></div>`).join('')||'<p style="font-size:14.5px;color:var(--ink-3);padding:8px 0">No reports yet.</p>';
+  const prows=myPosts.map(p=>`<div class="fact"><span style="max-width:58%"><b style="display:block;font-size:14.5px;color:var(--ink)">${p.tag}</b><span style="font-size:13px;color:var(--ink-2)">${String(p.text).slice(0,64)}${p.text.length>64?'…':''}</span></span><button class="link-quiet" data-delpost="${p.id}" style="color:#D93A3B">Delete</button></div>`).join('')||'<p style="font-size:14.5px;color:var(--ink-3);padding:8px 0">No posts yet.</p>';
+  return `<div data-mystuff-marker style="display:none"></div>
+    <div class="d-head" style="margin-top:18px"><h2 style="font-size:22px">My Reports &amp; Posts</h2></div>
+    <div class="d-sub"><h3>Reports on the map (${myReports.length})</h3><div class="d-facts" style="margin-top:6px">${rrows}</div></div>
+    <div class="d-sub"><h3>Community posts (${myPosts.length})</h3><div class="d-facts" style="margin-top:6px">${prows}</div></div>
+    <p style="margin-top:16px;font-size:13px;color:var(--ink-3)">Deleting removes it for everyone. Tap Delete twice to confirm.</p>`;
+}
+function profileHtml(){
+  const u=state.user||{};
+  const hoods=['SJC Centro','La Playita','Zona Hotelera','Cabo San Lucas','Todos Santos','East Cape','La Paz','Other'];
+  return `<div class="d-head" style="margin-top:18px"><h2 style="font-size:22px">My Profile</h2></div>
+    <div class="auth-field" style="margin-top:14px"><label>Display name</label><input type="text" id="profName" value="${(u.name||'').replace(/"/g,'&quot;')}"></div>
+    <label style="font-size:14px;font-weight:600">Area</label>
+    <div class="hood-row">${hoods.map(h=>`<button class="tag-pick ${u.hood===h?'on':''}" data-profhood="${h}">${h}</button>`).join('')}</div>
+    <div class="d-actions"><button class="btn btn-primary" data-profsave>Save Profile</button></div>
+    <p style="margin-top:14px;font-size:13px;color:var(--ink-3)">Your name and area appear on your reports and posts.</p>`;
+}
+document.addEventListener('click',e=>{
+  const dr=e.target.closest('[data-delreport]');
+  if(dr){ if(dr.dataset.arm){ deleteReport(dr.dataset.delreport); }
+    else { dr.dataset.arm='1'; dr.textContent='Confirm delete?';
+      setTimeout(()=>{ if(dr.isConnected){ delete dr.dataset.arm; dr.textContent='Delete'; } },3000); } return; }
+  const dp=e.target.closest('[data-delpost]');
+  if(dp){ if(dp.dataset.arm){ deletePost(dp.dataset.delpost); }
+    else { dp.dataset.arm='1'; dp.textContent='Confirm?';
+      setTimeout(()=>{ if(dp.isConnected){ delete dp.dataset.arm; dp.textContent='Delete'; } },3000); } return; }
+  const ph=e.target.closest('[data-profhood]');
+  if(ph){ ph.parentElement.querySelectorAll('.tag-pick').forEach(x=>x.classList.remove('on')); ph.classList.add('on'); return; }
+  if(e.target.closest('[data-profsave]')){
+    const nm=($('#profName')&&$('#profName').value.trim())||'';
+    if(!nm){ toast('Name can\u2019t be empty.'); return; }
+    const hd=document.querySelector('[data-profhood].on');
+    if(state.user){ state.user.name=nm; if(hd) state.user.hood=hd.dataset.profhood; }
+    if(FBdb && FB && FB.auth().currentUser){
+      FBdb.collection('users').doc(FB.auth().currentUser.uid).set({name:nm, area:hd?hd.dataset.profhood:null},{merge:true}).catch(()=>{});
+    }
+    refreshAuthUI(); closeSheet(); closePanel(); toast('Profile updated.');
+  }
+});
+
 /* ================= STATIC PANELS ================= */
 function openStatic(html){
   if(isDesktop()){
@@ -1943,7 +2012,11 @@ function feedbackHtml(){
 }
 document.addEventListener('click',e=>{
   const st=e.target.closest('[data-static]');
-  if(st){ openStatic(st.dataset.static==='about'?aboutHtml():feedbackHtml()); }
+  if(st){
+    document.querySelectorAll('.popover').forEach(x=>x.classList.remove('open'));
+    const kind=st.dataset.static;
+    openStatic(kind==='about'?aboutHtml():kind==='mystuff'?myStuffHtml():kind==='profile'?profileHtml():feedbackHtml());
+  }
   const tg=e.target.closest('[data-fbtag]');
   if(tg){ tg.parentElement.querySelectorAll('.tag-pick').forEach(x=>x.classList.remove('on')); tg.classList.add('on'); }
   if(e.target.closest('[data-fbsend]')){
@@ -2080,6 +2153,7 @@ function reportDetail(r){
     <div class="d-actions">
       <button class="btn btn-primary" data-auth data-toast="Thank you! Nearby volunteers have been notified.">I Can Help</button>
       ${gmaps?`<a class="btn btn-secondary" href="${gmaps}" target="_blank" rel="noopener">Navigate</a>`:''}
+      ${(r.authorId&&r.authorId===myUid())?`<button class="btn btn-ghost" style="color:#D93A3B" data-delreport="${r.id}">Delete</button>`:''}
     </div>
     <p style="margin-top:14px;font-size:13px;color:var(--ink-3)">Community report via Baja Connect.</p>`;
 }
