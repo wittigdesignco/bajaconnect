@@ -593,6 +593,23 @@ a.btn{text-decoration:none}
     box-shadow:0 8px 28px rgba(24,26,28,.16),inset 0 1px 1.5px rgba(255,255,255,.85)}
 }
 
+/* ---- status pill dropdown ---- */
+.status-dd{position:relative;display:inline-flex;flex-shrink:0}
+.status-pill{display:inline-flex;align-items:center;gap:7px;padding:8px 14px;border-radius:999px;
+  font-size:12.5px;font-weight:700;letter-spacing:.02em;cursor:pointer;white-space:nowrap;
+  border:1px solid rgba(0,0,0,.05);box-shadow:0 2px 8px rgba(24,26,28,.08)}
+.status-pill .sdot{width:8px;height:8px;border-radius:50%;flex-shrink:0}
+.status-pill .sdd-chev{opacity:.65;flex-shrink:0}
+.sdd-list{position:absolute;top:calc(100% + 6px);right:0;z-index:80;min-width:176px;
+  background:rgba(255,255,255,.92);backdrop-filter:blur(16px) saturate(1.3);-webkit-backdrop-filter:blur(16px) saturate(1.3);
+  border:1px solid rgba(255,255,255,.7);border-radius:14px;box-shadow:0 14px 40px rgba(24,26,28,.22);
+  padding:6px;display:flex;flex-direction:column;gap:1px}
+.sdd-list[hidden]{display:none}
+.sdd-opt{display:flex;align-items:center;gap:9px;padding:10px 12px;border-radius:9px;
+  font-size:14px;font-weight:600;color:var(--ink);text-align:left;white-space:nowrap}
+.sdd-opt:hover,.sdd-opt.on{background:var(--surface)}
+.sdd-opt .sdot{width:9px;height:9px;border-radius:50%;flex-shrink:0}
+
 /* ---- avatar crop overlay ---- */
 #cropOv{position:fixed;inset:0;z-index:90;background:rgba(24,30,34,.5);
   backdrop-filter:blur(6px);-webkit-backdrop-filter:blur(6px);
@@ -2071,6 +2088,20 @@ function profileHtml(){
 }
 document.addEventListener('click',e=>{
   if(e.target.closest('[data-avatarpick]')){ const f=$('#avatarFile'); if(f) f.click(); return; }
+  document.querySelectorAll('.sdd-list:not([hidden])').forEach(l=>{ if(!l.parentElement.contains(e.target)) l.hidden=true; });
+  const sb=e.target.closest('[data-sddbtn]');
+  if(sb){ const l=sb.parentElement.querySelector('.sdd-list'); if(l) l.hidden=!l.hidden; return; }
+  const so=e.target.closest('[data-sddopt]');
+  if(so){ const r=REPORTS.find(x=>x.id===so.dataset.sddid);
+    if(r){ r.status=so.dataset.sddopt; renderMarkers();
+      if(FBdb && FB && FB.auth().currentUser && !String(r.id).startsWith('local-')){
+        FBdb.collection('reports').doc(r.id).update({status:r.status})
+          .then(()=>toast('Status updated for everyone.'))
+          .catch(()=>toast('Updated here — cloud save failed, try again later.'));
+      } else toast('Status updated.');
+      openDetail('report',r.id);
+    }
+    return; }
   const er=e.target.closest('[data-editreport]');
   if(er){ const r=REPORTS.find(x=>x.id===er.dataset.editreport);
     if(r){ closeSheet(); closePanel();
@@ -2419,9 +2450,22 @@ function loadReports(){
 function reportDetail(r){
   const gmaps=r.location?`https://www.google.com/maps/dir/?api=1&destination=${r.location.lat},${r.location.lng}`:null;
   const when=(r.createdAt||'').slice(0,10);
+  const own=(r.authorId&&r.authorId===myUid());
+  const C=COLORS[r.status]||COLORS.help;
+  const statusCtl = own
+    ? `<span class="status-dd">
+        <button class="status-pill" data-sddbtn="${r.id}" aria-haspopup="listbox" aria-label="Change status" style="background:${C.bg};color:${C.t}">
+          <span class="sdot" style="background:${C.c}"></span>${C.label}
+          <svg class="sdd-chev" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m6 9 6 6 6-6"/></svg>
+        </button>
+        <div class="sdd-list" role="listbox" hidden>
+          ${['help','urgent','rescue','safe'].map(k=>`<button class="sdd-opt${r.status===k?' on':''}" role="option" data-sddopt="${k}" data-sddid="${r.id}"><span class="sdot" style="background:${COLORS[k].c}"></span>${COLORS[k].label}</button>`).join('')}
+        </div>
+      </span>`
+    : badge(r.status);
   return `
     ${r.photo?`<div class="d-photo" style="height:190px;background:#EAE4D8 url('${r.photo}') center/cover no-repeat"></div>`:`<div class="d-photo" style="background:linear-gradient(135deg,#F28C45,#F05D5E);height:110px">${I.paw}</div>`}
-    <div class="d-head"><h2 style="font-size:21px">Reported ${ANIMAL_LABEL[r.animal]||'Animal'}</h2>${badge(r.status)}</div>
+    <div class="d-head"><h2 style="font-size:21px">Reported ${ANIMAL_LABEL[r.animal]||'Animal'}</h2>${statusCtl}</div>
     <div class="d-loc">${I.pin} ${SITU_LABEL[r.situation]||'Reported'}</div>
     ${r.note?`<p class="d-desc" style="margin-top:10px">${String(r.note).replace(/</g,'&lt;')}</p>`:''}
     <div class="d-facts">
@@ -2431,7 +2475,7 @@ function reportDetail(r){
     <div class="d-actions">
       <button class="btn btn-primary" data-auth data-toast="Thank you! Nearby volunteers have been notified.">I Can Help</button>
       ${gmaps?`<a class="btn btn-secondary" href="${gmaps}" target="_blank" rel="noopener">Navigate</a>`:''}
-      ${(r.authorId&&r.authorId===myUid())?`<div style="display:flex;align-items:center;gap:10px"><label for="repStatusSel" style="font-size:14px;font-weight:600;flex-shrink:0;color:var(--ink-2)">Status</label><select id="repStatusSel" data-repstatus="${r.id}" style="flex:1;min-width:0;padding:12px 18px;border:1px solid var(--line-2);border-radius:999px;font:inherit;font-size:15px;font-weight:600;background:var(--paper);color:${(COLORS[r.status]||COLORS.help).t}"><option value="help"${r.status==='help'?' selected':''}>Needs Help</option><option value="urgent"${r.status==='urgent'?' selected':''}>URGENT</option><option value="rescue"${r.status==='rescue'?' selected':''}>In Rescue</option><option value="safe"${r.status==='safe'?' selected':''}>Safe &amp; Adopted</option></select></div><div style="display:flex;gap:10px"><button class="btn btn-secondary" style="flex:1" data-editreport="${r.id}">Edit</button><button class="btn btn-secondary" style="flex:1;color:#D93A3B" data-delreport="${r.id}">Delete</button></div>`:''}
+      ${own?`<div style="display:flex;gap:10px"><button class="btn btn-secondary" style="flex:1" data-editreport="${r.id}">Edit</button><button class="btn btn-secondary" style="flex:1;color:#D93A3B" data-delreport="${r.id}">Delete</button></div>`:''}
     </div>
     ${(r.updates&&r.updates.length)?`<div class="d-sub"><h3>Updates</h3>${r.updates.map(u=>`<div class="post-upd"><b>UPDATE · ${relTime(u.at)}</b>${String(u.text).replace(/</g,'&lt;')}</div>`).join('')}</div>`:''}
     ${(r.authorId&&r.authorId===myUid())?`<div class="d-sub"><h3>Post an update</h3>
