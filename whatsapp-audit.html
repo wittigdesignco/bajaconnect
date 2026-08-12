@@ -1,0 +1,80 @@
+<!DOCTYPE html>
+<html lang="en"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="robots" content="noindex">
+<title>Baja Connect — WhatsApp Audit</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;-webkit-tap-highlight-color:transparent}
+body{background:#F7F6F2;color:#253238;padding:18px 14px 90px}
+.wrap{max-width:560px;margin:0 auto}
+h1{font-size:20px;letter-spacing:-.01em;margin-bottom:4px}
+.sub{font-size:13.5px;color:#6E7A81;margin-bottom:14px;line-height:1.45}
+.prog{position:sticky;top:0;background:rgba(247,246,242,.94);backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);padding:10px 0;z-index:5;margin-bottom:6px}
+.prog b{font-size:14px}
+.bar{height:6px;background:#E4E0D6;border-radius:99px;margin-top:7px;overflow:hidden}
+.bar i{display:block;height:100%;width:0;background:#4F9D83;border-radius:99px;transition:width .2s}
+.city{font-size:12px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:#8A9096;margin:18px 2px 8px}
+.card{background:#fff;border:1px solid #E7E2D8;border-radius:14px;padding:13px 14px;margin-bottom:9px;box-shadow:0 2px 8px rgba(24,26,28,.05)}
+.card.yes{border-color:#4F9D83;background:#F2F8F5}
+.card.no{border-color:#E0B4B4;background:#FBF3F3}
+.nm{font-size:15px;font-weight:600;line-height:1.3}
+.ph{font-size:13.5px;color:#6E7A81;margin-top:2px}
+.row{display:flex;gap:8px;margin-top:10px}
+.b{flex:1;text-align:center;padding:11px 6px;border-radius:99px;font-size:13.5px;font-weight:600;border:1px solid #DED8CC;background:#fff;color:#253238;text-decoration:none;cursor:pointer}
+.b.open{background:#1FA855;border-color:#1FA855;color:#fff}
+.b.yes.on{background:#4F9D83;border-color:#4F9D83;color:#fff}
+.b.no.on{background:#C0564F;border-color:#C0564F;color:#fff}
+.foot{position:fixed;left:0;right:0;bottom:0;background:rgba(255,255,255,.94);backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px);border-top:1px solid #E7E2D8;padding:12px 14px calc(12px + env(safe-area-inset-bottom))}
+.foot button{width:100%;max-width:560px;display:block;margin:0 auto;padding:14px;border-radius:99px;border:none;background:#253238;color:#fff;font-size:15.5px;font-weight:700;cursor:pointer}
+.tag{display:inline-block;font-size:11px;font-weight:700;padding:2px 8px;border-radius:99px;margin-left:6px;vertical-align:1px}
+.tag.Vet{background:#E4F1F5;color:#0F7291}.tag.Rescue{background:#E8F3EE;color:#337A62}
+</style></head><body><div class="wrap">
+<h1>WhatsApp Audit</h1>
+<p class="sub">For each listing: tap <b>Open WA</b>. If a chat opens, come back and tap <b>Has WA</b>. If WhatsApp says the number isn't on WhatsApp, tap <b>No WA</b>. Your progress saves on this device. When done, tap <b>Copy Results</b> at the bottom and paste them to Claude.</p>
+<div class="prog"><b id="cnt"></b><div class="bar"><i id="fill"></i></div></div>
+<div id="list"></div>
+</div>
+<div class="foot"><button id="copy">Copy Results</button></div>
+<script>
+const DATA=[{"id": "org-pet", "name": "P.E.T. Los Cabos", "city": "Cabo San Lucas", "kind": "Rescue", "phone": "624 151 5842", "wa": "526241515842"}, {"id": "org-animalandia", "name": "Animalandia Loreto", "city": "Loreto", "kind": "Rescue", "phone": "+52 613 114 5523", "wa": "526131145523"}, {"id": "org-ternuritas", "name": "Mis Ternuritas", "city": "Los Cabos", "kind": "Rescue", "phone": "624 165 6497", "wa": "526241656497"}, {"id": "org-perruno", "name": "Rescate Perruno Los Cabos A.C.", "city": "San José del Cabo", "kind": "Rescue", "phone": "+52 624 244 6248", "wa": "526242446248"}, {"id": "v-cabopet", "name": "Cabo Pet Hospital", "city": "Cabo San Lucas", "kind": "Vet", "phone": "624 105 1994", "wa": "526241051994"}, {"id": "v-animalcare", "name": "Clínica Veterinaria Animal Care Center", "city": "Cabo San Lucas", "kind": "Vet", "phone": "624 172 0110", "wa": "526241720110"}, {"id": "v-erimar", "name": "Clínica Veterinaria Erimar", "city": "Cabo San Lucas", "kind": "Vet", "phone": "624 129 4864", "wa": "526241294864"}, {"id": "v-docdog", "name": "Doc&Dog Clínica Veterinaria", "city": "Cabo San Lucas", "kind": "Vet", "phone": "624 143 9718", "wa": "526241439718"}, {"id": "v-fieritos", "name": "Fierito's Vet Clinic", "city": "Cabo San Lucas", "kind": "Vet", "phone": "624 151 5842", "wa": "526241515842"}, {"id": "v-jopet", "name": "JoPet Veterinaria", "city": "Cabo San Lucas", "kind": "Vet", "phone": "624 240 8886", "wa": "526242408886"}, {"id": "v-rivera", "name": "Rivera Cabo Veterinaria", "city": "Cabo San Lucas", "kind": "Vet", "phone": "624 146 6426", "wa": "526241466426"}, {"id": "v-dogtorcsl", "name": "Veterinaria Dogtor", "city": "Cabo San Lucas", "kind": "Vet", "phone": "624 688 2854", "wa": "526246882854"}, {"id": "v-loscabosvet", "name": "Veterinaria Los Cabos", "city": "Cabo San Lucas", "kind": "Vet", "phone": "624 156 2844", "wa": "526241562844"}, {"id": "v-sanlucas", "name": "Veterinaria San Lucas", "city": "Cabo San Lucas", "kind": "Vet", "phone": "624 113 6305", "wa": "526241136305"}, {"id": "v-hospetal", "name": "Hospetal", "city": "Ensenada", "kind": "Vet", "phone": "646 152 1669", "wa": "526461521669"}, {"id": "v-medpets", "name": "Medical Pets Ensenada", "city": "Ensenada", "kind": "Vet", "phone": "646 344 8000", "wa": "526463448000"}, {"id": "v-bahia2", "name": "Veterinaria Bahía — Centro", "city": "Ensenada", "kind": "Vet", "phone": "646 343 5096", "wa": "526463435096"}, {"id": "v-bahia1", "name": "Veterinaria Bahía — Matriz", "city": "Ensenada", "kind": "Vet", "phone": "646 237 9982", "wa": "526462379982"}, {"id": "v-amigos", "name": "Amigos & Mascotas", "city": "La Paz", "kind": "Vet", "phone": "449 977 7538", "wa": "524499777538"}, {"id": "v-animalland", "name": "Animal Land", "city": "La Paz", "kind": "Vet", "phone": "612 122 4115", "wa": "526121224115"}, {"id": "v-bayliss", "name": "Bayliss Veterinaria Villas", "city": "La Paz", "kind": "Vet", "phone": "612 166 4665", "wa": "526121664665"}, {"id": "v-perrosgatos", "name": "Clínica Como Perros y Gatos", "city": "La Paz", "kind": "Vet", "phone": "612 168 2709", "wa": "526121682709"}, {"id": "v-ortiz5", "name": "Clínica Ortiz (5 de Mayo)", "city": "La Paz", "kind": "Vet", "phone": "612 152 0083", "wa": "526121520083"}, {"id": "v-cancat", "name": "Clínica Veterinaria Can & Cat", "city": "La Paz", "kind": "Vet", "phone": "612 138 1680", "wa": "526121381680"}, {"id": "v-integral", "name": "Clínica Veterinaria Integral", "city": "La Paz", "kind": "Vet", "phone": "612 348 8481", "wa": "526123488481"}, {"id": "v-katdog", "name": "Clínica Veterinaria KATDOG", "city": "La Paz", "kind": "Vet", "phone": "612 146 1889", "wa": "526121461889"}, {"id": "v-madero", "name": "Clínica Veterinaria Madero", "city": "La Paz", "kind": "Vet", "phone": "612 122 5662", "wa": "526121225662"}, {"id": "v-miumau", "name": "Clínica Veterinaria Miu Mau", "city": "La Paz", "kind": "Vet", "phone": "612 121 3965", "wa": "526121213965"}, {"id": "v-espec", "name": "Especialidades Veterinarias", "city": "La Paz", "kind": "Vet", "phone": "612 122 1644", "wa": "526121221644"}, {"id": "v-blanconegro", "name": "Hospital Veterinario Blanco y Negro", "city": "La Paz", "kind": "Vet", "phone": "612 123 5023", "wa": "526121235023"}, {"id": "v-dogtor", "name": "Hospital Veterinario Dogtor House", "city": "La Paz", "kind": "Vet", "phone": "612 122 1623", "wa": "526121221623"}, {"id": "v-uabcs", "name": "Hospital Veterinario UABCS", "city": "La Paz", "kind": "Vet", "phone": "612 123 8800 ext. 5235", "wa": "526121238800"}, {"id": "v-kora", "name": "Kora Veterinaria", "city": "La Paz", "kind": "Vet", "phone": "612 129 3443", "wa": "526121293443"}, {"id": "v-puntovet", "name": "PuntoVet Clínica Veterinaria", "city": "La Paz", "kind": "Vet", "phone": "612 171 9708", "wa": "526121719708"}, {"id": "v-animalitos", "name": "Veterinaria Ani-Malitos", "city": "La Paz", "kind": "Vet", "phone": "612 136 5163", "wa": "526121365163"}, {"id": "v-lia", "name": "Veterinaria Lia", "city": "La Paz", "kind": "Vet", "phone": "612 125 4942", "wa": "526121254942"}, {"id": "v-mundi", "name": "Veterinaria Mundimascotas", "city": "La Paz", "kind": "Vet", "phone": "612 122 6600", "wa": "526121226600"}, {"id": "v-mundo", "name": "Veterinaria Mundo Vet", "city": "La Paz", "kind": "Vet", "phone": "612 131 8897", "wa": "526121318897"}, {"id": "v-zoolo", "name": "Veterinaria Zoolomascotas", "city": "La Paz", "kind": "Vet", "phone": "612 139 5539", "wa": "526121395539"}, {"id": "v-ruiz", "name": "Veterinaria y Estética Canina Ruiz", "city": "La Paz", "kind": "Vet", "phone": "612 114 3629", "wa": "526121143629"}, {"id": "v-vetpet", "name": "Vet & Pet", "city": "Mexicali", "kind": "Vet", "phone": "686 218 0790", "wa": "526862180790"}, {"id": "v-vetfriendly", "name": "Vet Friendly Veterinaria", "city": "Mexicali", "kind": "Vet", "phone": "686 556 8019", "wa": "526865568019"}, {"id": "v-16sept", "name": "Consultorio Veterinario 16 de Septiembre", "city": "Playas de Rosarito", "kind": "Vet", "phone": "661 612 4768", "wa": "526616124768"}, {"id": "v-fabflores", "name": "Veterinaria Fabián Flores", "city": "Playas de Rosarito", "kind": "Vet", "phone": "661 612 7556", "wa": "526616127556"}, {"id": "v-centrosj", "name": "Centro Veterinario San José", "city": "San José del Cabo", "kind": "Vet", "phone": "624 142 0007", "wa": "526241420007"}, {"id": "v-veto", "name": "Clínica Veterinaria Vet-O", "city": "San José del Cabo", "kind": "Vet", "phone": "624 212 7184", "wa": "526242127184"}, {"id": "v-chiapa-ba", "name": "Veterinaria Chiapa del Sur — Buenos Aires", "city": "San José del Cabo", "kind": "Vet", "phone": "624 146 0606", "wa": "526241460606"}, {"id": "v-chiapa-centro", "name": "Veterinaria Chiapa del Sur — Centro", "city": "San José del Cabo", "kind": "Vet", "phone": "624 105 2733", "wa": "526241052733"}, {"id": "v-laspalmas", "name": "Veterinaria Las Palmas", "city": "San José del Cabo", "kind": "Vet", "phone": "624 142 2928", "wa": "526241422928"}, {"id": "v-herradura", "name": "Veterinaria la Herradura", "city": "San José del Cabo", "kind": "Vet", "phone": "624 146 0301", "wa": "526241460301"}, {"id": "v-emevet", "name": "EMEVET Clínica Veterinaria", "city": "Tijuana", "kind": "Vet", "phone": "664 356 3990", "wa": "526643563990"}, {"id": "v-mowen", "name": "Hospital Veterinario Mowen", "city": "Tijuana", "kind": "Vet", "phone": "664 613 4318", "wa": "526646134318"}, {"id": "v-petshouse", "name": "Pet's House Centro Veterinario", "city": "Tijuana", "kind": "Vet", "phone": "664 268 7609", "wa": "526642687609"}, {"id": "v-servcal", "name": "Servicio Veterinario California", "city": "Tijuana", "kind": "Vet", "phone": "664 685 8512", "wa": "526646858512"}, {"id": "v-figueroa", "name": "Veterinaria Figueroa", "city": "Tijuana", "kind": "Vet", "phone": "664 215 3385", "wa": "526642153385"}, {"id": "v-nayarit-tj", "name": "Veterinaria Nayarit", "city": "Tijuana", "kind": "Vet", "phone": "664 917 0515", "wa": "526649170515"}, {"id": "v-postal", "name": "Veterinaria Postal", "city": "Tijuana", "kind": "Vet", "phone": "664 683 7045", "wa": "526646837045"}, {"id": "v-tajin", "name": "Veterinary Clinic Tajín", "city": "Tijuana", "kind": "Vet", "phone": "664 381 8376", "wa": "526643818376"}];
+const KEY='bc-wa-audit';
+let st={}; try{ st=JSON.parse(localStorage.getItem(KEY)||'{}'); }catch(e){}
+function save(){ try{ localStorage.setItem(KEY,JSON.stringify(st)); }catch(e){} }
+function render(){
+  const list=document.getElementById('list'); list.innerHTML='';
+  let city='';
+  DATA.forEach(d=>{
+    const c=d.kind+' — '+d.city;
+    if(c!==city){ city=c; const h=document.createElement('div'); h.className='city'; h.textContent=c; list.appendChild(h); }
+    const v=st[d.id];
+    const el=document.createElement('div');
+    el.className='card'+(v==='yes'?' yes':v==='no'?' no':'');
+    el.innerHTML=`<div class="nm">${d.name}<span class="tag ${d.kind}">${d.kind}</span></div>
+      <div class="ph">${d.phone}</div>
+      <div class="row">
+        <a class="b open" href="https://wa.me/${d.wa}" target="_blank" rel="noopener">Open WA</a>
+        <button class="b yes${v==='yes'?' on':''}" data-id="${d.id}" data-v="yes">Has WA</button>
+        <button class="b no${v==='no'?' on':''}" data-id="${d.id}" data-v="no">No WA</button>
+      </div>`;
+    list.appendChild(el);
+  });
+  const done=Object.keys(st).length;
+  document.getElementById('cnt').textContent=done+' of '+DATA.length+' checked';
+  document.getElementById('fill').style.width=(100*done/DATA.length)+'%';
+}
+document.addEventListener('click',e=>{
+  const b=e.target.closest('button[data-id]'); if(!b) return;
+  const id=b.dataset.id;
+  st[id]=(st[id]===b.dataset.v)?undefined:b.dataset.v;
+  if(st[id]===undefined) delete st[id];
+  save(); render();
+});
+document.getElementById('copy').addEventListener('click',()=>{
+  const lines=DATA.filter(d=>st[d.id]).map(d=>d.id+','+st[d.id]+','+d.name);
+  const txt='BAJA CONNECT WHATSAPP AUDIT\n'+lines.join('\n');
+  (navigator.clipboard?navigator.clipboard.writeText(txt):Promise.reject()).then(
+    ()=>alert('Copied '+lines.length+' results — paste them to Claude.'),
+    ()=>prompt('Copy this:',txt));
+});
+render();
+</script></body></html>
