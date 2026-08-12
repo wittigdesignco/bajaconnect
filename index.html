@@ -1406,6 +1406,41 @@ function vetCard(v,em){
     </div></div></div>`;
 }
 
+/* ================= LIVE COMMUNITY (Firestore) ================= */
+let postsLoaded=false;
+function relTime(iso){
+  if(!iso) return '';
+  const mins=Math.max(1,Math.round((Date.now()-new Date(iso).getTime())/60000));
+  if(mins<60) return mins+'m';
+  const hrs=Math.round(mins/60); if(hrs<24) return hrs+'h';
+  const days=Math.round(hrs/24); if(days<7) return days+'d';
+  return new Date(iso).toLocaleDateString();
+}
+function loadPosts(){
+  if(!FBdb || postsLoaded) return;
+  postsLoaded=true;
+  FBdb.collection('posts').orderBy('createdAt','desc').limit(50).get().then(async snap=>{
+    if(snap.empty) return;
+    const uid=(FB&&FB.auth().currentUser)?FB.auth().currentUser.uid:null;
+    const real=[];
+    for(const d of snap.docs){
+      const v=d.data();
+      let likeCount=0, mine=false;
+      try{
+        const ls=await d.ref.collection('likes').get();
+        mine=uid?ls.docs.some(x=>x.id===uid):false;
+        likeCount=ls.size-(mine?1:0);
+      }catch(e){}
+      real.push({id:d.id, who:v.authorName||'Member', tag:v.tag||'Update', when:relTime(v.createdAt),
+        likes:likeCount, hearts:0, liked:mine, open:false, text:v.text||'', comments:null, real:true});
+    }
+    // newest community posts on top, demo seed posts below
+    POSTS.unshift(...real);
+    if(state.view==='community') renderList('community');
+    console.log('Live posts loaded:',real.length);
+  }).catch(()=>{ postsLoaded=false; });
+}
+
 /* ================= COMMUNITY BOARD ================= */
 function composerHtml(){
   if(!board.composer) return `<div class="card composer-card"><div class="card-body" style="padding:12px 16px">
@@ -1436,14 +1471,14 @@ function postHtml(p){
       <span class="react-cluster">
         <i class="react-b thumb">${I.thumb}</i>${p.hearts?`<i class="react-b heart">${I.heartS}</i>`:''}
         <em>${reacts + (p.liked?1:0)}</em></span>
-      <button class="link-quiet" data-comments="${p.id}">${p.comments.length} comment${p.comments.length===1?'':'s'}</button>
+      <button class="link-quiet" data-comments="${p.id}">${p.comments?`${p.comments.length} comment${p.comments.length===1?'':'s'}`:'Comments'}</button>
     </div>
     <div class="post-actions">
       <button class="post-act ${p.liked?'liked':''}" data-like="${p.id}">${I.thumb} Like</button>
       <button class="post-act" data-comments="${p.id}">${I.comment} Comment</button>
       <button class="post-act" data-share="${p.id}">${I.share} Share</button>
     </div>
-    ${p.open?`<div class="comments">
+    ${(p.open&&p.comments)?`<div class="comments">
       ${p.comments.map(c=>`<div class="comment"><div class="avatar init">${initials(c.who)}</div>
         <div class="bubble"><b>${c.who}</b>${c.text}</div></div>`).join('')}
       <div class="cinput-row">
@@ -1462,19 +1497,51 @@ function bindBoard(){
   root.querySelectorAll('[data-post]').forEach(b=>b.addEventListener('click',()=>{
     const t=$('#composerText'); const txt=(t&&t.value.trim())||'';
     if(!txt){ toast('Write something first.'); return; }
-    POSTS.unshift({id:'p'+Date.now(), who:state.user?state.user.name:'You', tag:board.tag, when:'Just now', likes:0, hearts:0, liked:false, open:false, text:txt, comments:[]});
-    board.composer=false; renderList('community'); toast('Posted to the community board.');
+    const np={id:'p'+Date.now(), who:state.user?state.user.name:'You', tag:board.tag, when:'Just now', likes:0, hearts:0, liked:false, open:false, text:txt, comments:[]};
+    POSTS.unshift(np);
+    board.composer=false; renderList('community');
+    if(FBdb && FB && FB.auth().currentUser){
+      FBdb.collection('posts').add({
+        authorId:FB.auth().currentUser.uid,
+        authorName:np.who, tag:np.tag, text:txt,
+        createdAt:new Date().toISOString()
+      }).then(ref=>{ np.id=ref.id; np.real=true; toast('Posted to the community board.'); })
+        .catch(()=>toast('Shown here — cloud save failed, try again later.'));
+    } else if(FBdb){
+      toast('Demo session — sign in with Google so posts reach the shared board.');
+    } else toast('Posted to the community board.');
   }));
   root.querySelectorAll('[data-like]').forEach(b=>b.addEventListener('click',()=>requireAuth(()=>{
     const p=POSTS.find(x=>x.id===b.dataset.like); p.liked=!p.liked; renderList('community');
+    if(p.real && FBdb && FB && FB.auth().currentUser){
+      const lr=FBdb.collection('posts').doc(p.id).collection('likes').doc(FB.auth().currentUser.uid);
+      (p.liked?lr.set({at:new Date().toISOString()}):lr.delete()).catch(()=>{});
+    }
   })));
   root.querySelectorAll('[data-comments]').forEach(b=>b.addEventListener('click',()=>{
-    const p=POSTS.find(x=>x.id===b.dataset.comments); p.open=!p.open; renderList('community');
-    if(p.open){ const inp=root.querySelector(`[data-cinput="${p.id}"]`); }
+    const p=POSTS.find(x=>x.id===b.dataset.comments);
+    const openIt=()=>{ p.open=!p.open; renderList('community'); };
+    if(p.real && p.comments===null && FBdb){
+      p.comments=[];
+      FBdb.collection('posts').doc(p.id).collection('comments').orderBy('createdAt').limit(100).get()
+        .then(cs=>{ cs.forEach(c=>{ const cv=c.data(); p.comments.push({who:cv.authorName||'Member',text:cv.text||''}); }); openIt(); })
+        .catch(openIt);
+    } else openIt();
   }));
   root.querySelectorAll('[data-share]').forEach(b=>b.addEventListener('click',()=>{ const p=POSTS.find(x=>x.id===b.dataset.share); openShare((p?`${p.who} on Baja Connect: ${p.text}`:'Baja Connect').slice(0,220)); }));
   const send=id=>{ const inp=root.querySelector(`[data-cinput="${id}"]`); const v=(inp&&inp.value.trim())||'';
-    if(!v) return; requireAuth(()=>{ const p=POSTS.find(x=>x.id===id); p.comments.push({who:state.user?state.user.name:'You',text:v}); renderList('community'); }); };
+    if(!v) return; requireAuth(()=>{
+      const p=POSTS.find(x=>x.id===id);
+      if(!p.comments) p.comments=[];
+      p.comments.push({who:state.user?state.user.name:'You',text:v}); renderList('community');
+      if(p.real && FBdb && FB && FB.auth().currentUser){
+        FBdb.collection('posts').doc(p.id).collection('comments').add({
+          authorId:FB.auth().currentUser.uid,
+          authorName:state.user?state.user.name:'Member',
+          text:v, createdAt:new Date().toISOString()
+        }).catch(()=>{});
+      } else if(FBdb){ toast('Demo session — sign in with Google so comments reach the shared board.'); }
+    }); };
   root.querySelectorAll('[data-csend]').forEach(b=>b.addEventListener('click',()=>send(b.dataset.csend)));
   root.querySelectorAll('[data-cinput]').forEach(i=>i.addEventListener('keydown',e=>{ if(e.key==='Enter') send(i.dataset.cinput); }));
 }
@@ -2029,6 +2096,7 @@ if(FB){
   });
   loadDirectories();
   loadReports();
+  loadPosts();
 }
 
 </script>
