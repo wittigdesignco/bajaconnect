@@ -431,6 +431,10 @@ img{max-width:100%}
 
 /* community board */
 a.btn{text-decoration:none}
+.post-upd{background:var(--event-bg);border-left:3px solid var(--event);border-radius:8px;padding:8px 12px;margin-top:8px;font-size:14px;line-height:1.5}
+.post-upd b{font-size:11.5px;letter-spacing:.06em;color:#0F7291;display:block;margin-bottom:2px}
+.upd-row{display:flex;gap:8px;margin-top:10px}
+.upd-row input{flex:1;border:1px solid var(--line-2);border-radius:10px;padding:10px 13px;font:inherit;font-size:14.5px;min-width:0}
 .composer-input{flex:1;text-align:left;border:1px solid var(--line-2);border-radius:999px;padding:11px 16px;font-size:14.5px;color:var(--ink-3);background:var(--surface)}
 .composer-input:hover{background:#F0F0EE}
 .tag-row{display:flex;gap:7px;margin:12px 0}
@@ -964,11 +968,12 @@ const FB_CONFIG={
   appId:"1:75402656991:web:7b9f845b814e47d9e63d6a",
   measurementId:"G-KCGVGEK8G3"
 };
-let FB=null, FBdb=null;   // null => demo mode (offline / file://)
+let FB=null, FBdb=null, FBst=null;   // null => demo mode (offline / file://)
 try{
   if(typeof firebase!=='undefined' && firebase.initializeApp){
     firebase.initializeApp(FB_CONFIG);
     FB=firebase; FBdb=firebase.firestore();
+    try{ FBst=firebase.storage(); }catch(e){ FBst=null; }
   }
 }catch(e){ FB=null; FBdb=null; }
 
@@ -1432,7 +1437,7 @@ function loadPosts(){
         likeCount=ls.size-(mine?1:0);
       }catch(e){}
       real.push({id:d.id, authorId:v.authorId||null, who:v.authorName||'Member', tag:v.tag||'Update', when:relTime(v.createdAt),
-        likes:likeCount, hearts:0, liked:mine, open:false, text:v.text||'', comments:null, real:true});
+        likes:likeCount, hearts:0, liked:mine, open:false, text:v.text||'', comments:null, real:true, updates:v.updates||[]});
     }
     // newest community posts on top, demo seed posts below
     POSTS.unshift(...real);
@@ -1465,9 +1470,11 @@ function postHtml(p){
       <div class="avatar init" style="width:40px;height:40px;border-radius:50%">${initials(p.who)}</div>
       <div style="flex:1;min-width:0"><b style="font-size:15px">${p.who}</b>
         <div style="font-size:13px;color:var(--ink-3)">${p.when} · <span class="post-tag ${tagClass(p.tag)}">${p.tag}</span></div></div>
-      ${((p.authorId&&p.authorId===myUid())||(!p.real&&state.user&&p.who===state.user.name))?`<button class="link-quiet" data-delpost="${p.id}" style="color:#D93A3B;flex-shrink:0">Delete</button>`:''}
+      ${((p.authorId&&p.authorId===myUid())||(!p.real&&state.user&&p.who===state.user.name))?`<span style="display:flex;gap:12px;flex-shrink:0"><button class="link-quiet" data-updpost="${p.id}" style="color:#0F7291">Update</button><button class="link-quiet" data-delpost="${p.id}" style="color:#D93A3B">Delete</button></span>`:''}
     </div>
     <p style="font-size:15px;line-height:1.55">${p.text}</p>
+    ${(p.updates&&p.updates.length)?p.updates.map(u=>`<div class="post-upd"><b>UPDATE · ${relTime(u.at)}</b>${String(u.text).replace(/</g,'&lt;')}</div>`).join(''):''}
+    ${p.updOpen?`<div class="upd-row"><input type="text" placeholder="Write an update…" data-updinput="${p.id}" aria-label="Write an update"><button class="btn btn-primary" style="width:auto;min-height:40px;padding:8px 16px;font-size:14px" data-updsend="${p.id}">Post</button></div>`:''}
     <div class="post-stats">
       <span class="react-cluster">
         <i class="react-b thumb">${I.thumb}</i>${p.hearts?`<i class="react-b heart">${I.heartS}</i>`:''}
@@ -1529,6 +1536,22 @@ function bindBoard(){
         .catch(openIt);
     } else openIt();
   }));
+  root.querySelectorAll('[data-updpost]').forEach(b=>b.addEventListener('click',()=>{
+    const p=POSTS.find(x=>x.id===b.dataset.updpost); p.updOpen=!p.updOpen; renderList('community');
+    const inp=root.querySelector(`[data-updinput="${p.id}"]`); if(inp) inp.focus();
+  }));
+  const sendUpd=id=>{
+    const inp=$('#listInner').querySelector(`[data-updinput="${id}"]`);
+    const v=(inp&&inp.value.trim())||''; if(!v) return;
+    const p=POSTS.find(x=>x.id===id);
+    if(!p.updates) p.updates=[];
+    const u={text:v, at:new Date().toISOString()};
+    p.updates.push(u); p.updOpen=false; renderList('community');
+    if(p.real) pushCloudUpdate('posts',id,u);
+    toast('Update posted.');
+  };
+  root.querySelectorAll('[data-updsend]').forEach(b=>b.addEventListener('click',()=>sendUpd(b.dataset.updsend)));
+  root.querySelectorAll('[data-updinput]').forEach(i=>i.addEventListener('keydown',e=>{ if(e.key==='Enter') sendUpd(i.dataset.updinput); }));
   root.querySelectorAll('[data-share]').forEach(b=>b.addEventListener('click',()=>{ const p=POSTS.find(x=>x.id===b.dataset.share); openShare((p?`${p.who} on Baja Connect: ${p.text}`:'Baja Connect').slice(0,220)); }));
   const send=id=>{ const inp=root.querySelector(`[data-cinput="${id}"]`); const v=(inp&&inp.value.trim())||'';
     if(!v) return; requireAuth(()=>{
@@ -1829,11 +1852,11 @@ function renderAuth(){
 function refreshAuthUI(){
   const u=state.user;
   $('#tbAccount').innerHTML = u
-    ? `<span class="tb-avatar">${initials(u.name)}</span>`
+    ? (u.photo?`<span class="tb-avatar" style="padding:0;overflow:hidden"><img src="${u.photo}" alt="" style="width:100%;height:100%;object-fit:cover"></span>`:`<span class="tb-avatar">${initials(u.name)}</span>`)
     : `<span class="tb-avatar" style="background:var(--surface);color:var(--ink-2)"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg></span>`;
   const pop=$('#popAccount');
   if(u){
-    pop.innerHTML=`<div class="pop-head" style="gap:11px;justify-content:flex-start"><span class="tb-avatar" style="width:38px;height:38px;font-size:13.5px">${initials(u.name)}</span>
+    pop.innerHTML=`<div class="pop-head" style="gap:11px;justify-content:flex-start"><span class="tb-avatar" style="width:38px;height:38px;font-size:13.5px;${u.photo?'padding:0;overflow:hidden':''}">${u.photo?`<img src="${u.photo}" alt="" style="width:100%;height:100%;object-fit:cover">`:initials(u.name)}</span>
       <span>${u.name}<br><small style="font-weight:400;color:var(--ink-2)">${u.hood}</small></span></div>
     <button class="pop-btn" data-static="profile">My Profile</button>
     <button class="pop-btn" data-static="mystuff">My Reports &amp; Posts</button>
@@ -1900,6 +1923,11 @@ document.addEventListener('click',e=>{
 
 /* ================= OWN CONTENT: delete + my stuff + profile ================= */
 function myUid(){ return (FB&&FB.auth().currentUser)?FB.auth().currentUser.uid:null; }
+function pushCloudUpdate(coll,id,u){
+  if(FBdb && FB && FB.auth().currentUser && !String(id).startsWith('local-') && !String(id).startsWith('p1')){
+    FBdb.collection(coll).doc(id).update({updates:FB.firestore.FieldValue.arrayUnion(u)}).catch(()=>{});
+  }
+}
 function inMyStuff(){ return !!document.querySelector('[data-mystuff-marker]'); }
 function deleteReport(id){
   const i=REPORTS.findIndex(r=>r.id===id); if(i<0) return;
@@ -1937,13 +1965,23 @@ function profileHtml(){
   const u=state.user||{};
   const hoods=['SJC Centro','La Playita','Zona Hotelera','Cabo San Lucas','Todos Santos','East Cape','La Paz','Other'];
   return `<div class="d-head" style="margin-top:18px"><h2 style="font-size:22px">My Profile</h2></div>
-    <div class="auth-field" style="margin-top:14px"><label>Display name</label><input type="text" id="profName" value="${(u.name||'').replace(/"/g,'&quot;')}"></div>
+    <div style="display:flex;align-items:center;gap:16px;margin-top:16px">
+      <span id="profAvatar" class="tb-avatar" style="width:72px;height:72px;font-size:22px;${u.photo?'padding:0;overflow:hidden':''}">${u.photo?`<img src="${u.photo}" alt="" style="width:100%;height:100%;object-fit:cover">`:initials(u.name||'?')}</span>
+      <div>
+        <button class="btn btn-secondary" style="min-height:42px;padding:9px 18px;font-size:14px;width:auto" data-avatarpick>Change Photo</button>
+        <input type="file" id="avatarFile" accept="image/*" style="display:none">
+        <p style="font-size:12.5px;color:var(--ink-3);margin-top:6px">JPG or PNG, we\u2019ll resize it.</p>
+      </div>
+    </div>
+    <div class="auth-field" style="margin-top:18px"><label>Display name</label><input type="text" id="profName" value="${(u.name||'').replace(/"/g,'&quot;')}"></div>
+    <div class="auth-field"><label>Bio <span class="optional">(a line about you)</span></label><textarea id="profBio" style="min-height:76px" placeholder="e.g. Dog dad in La Playita — happy to help with transport on weekends.">${(u.bio||'').replace(/</g,'&lt;')}</textarea></div>
     <label style="font-size:14px;font-weight:600">Area</label>
     <div class="hood-row">${hoods.map(h=>`<button class="tag-pick ${u.hood===h?'on':''}" data-profhood="${h}">${h}</button>`).join('')}</div>
     <div class="d-actions"><button class="btn btn-primary" data-profsave>Save Profile</button></div>
     <p style="margin-top:14px;font-size:13px;color:var(--ink-3)">Your name and area appear on your reports and posts.</p>`;
 }
 document.addEventListener('click',e=>{
+  if(e.target.closest('[data-avatarpick]')){ const f=$('#avatarFile'); if(f) f.click(); return; }
   const dr=e.target.closest('[data-delreport]');
   if(dr){ if(dr.dataset.arm){ deleteReport(dr.dataset.delreport); }
     else { dr.dataset.arm='1'; dr.textContent='Confirm delete?';
@@ -1952,17 +1990,69 @@ document.addEventListener('click',e=>{
   if(dp){ if(dp.dataset.arm){ deletePost(dp.dataset.delpost); }
     else { dp.dataset.arm='1'; dp.textContent='Confirm?';
       setTimeout(()=>{ if(dp.isConnected){ delete dp.dataset.arm; dp.textContent='Delete'; } },3000); } return; }
+  const ru=e.target.closest('[data-repupdate]');
+  if(ru){
+    const t=$('#repUpdText'); const v=(t&&t.value.trim())||'';
+    if(!v){ toast('Write the update first.'); return; }
+    const r=REPORTS.find(x=>x.id===ru.dataset.repupdate);
+    if(r){ if(!r.updates) r.updates=[];
+      const u={text:v, at:new Date().toISOString()};
+      r.updates.push(u);
+      pushCloudUpdate('reports',r.id,u);
+      openDetail('report',r.id);
+      toast('Update posted \u2014 visible to everyone viewing this pin.');
+    }
+    return;
+  }
   const ph=e.target.closest('[data-profhood]');
   if(ph){ ph.parentElement.querySelectorAll('.tag-pick').forEach(x=>x.classList.remove('on')); ph.classList.add('on'); return; }
   if(e.target.closest('[data-profsave]')){
     const nm=($('#profName')&&$('#profName').value.trim())||'';
     if(!nm){ toast('Name can\u2019t be empty.'); return; }
     const hd=document.querySelector('[data-profhood].on');
-    if(state.user){ state.user.name=nm; if(hd) state.user.hood=hd.dataset.profhood; }
+    const bio=($('#profBio')&&$('#profBio').value.trim())||'';
+    if(state.user){ state.user.name=nm; state.user.bio=bio; if(hd) state.user.hood=hd.dataset.profhood; }
     if(FBdb && FB && FB.auth().currentUser){
-      FBdb.collection('users').doc(FB.auth().currentUser.uid).set({name:nm, area:hd?hd.dataset.profhood:null},{merge:true}).catch(()=>{});
+      FBdb.collection('users').doc(FB.auth().currentUser.uid).set({name:nm, bio:bio, area:hd?hd.dataset.profhood:null},{merge:true}).catch(()=>{});
     }
     refreshAuthUI(); closeSheet(); closePanel(); toast('Profile updated.');
+  }
+});
+
+/* avatar upload: resize client-side, store in Firebase Storage */
+document.addEventListener('change',e=>{
+  if(e.target && e.target.id==='avatarFile' && e.target.files && e.target.files[0]){
+    const file=e.target.files[0];
+    const img=new Image();
+    img.onload=()=>{
+      const c=document.createElement('canvas');
+      const size=256, m=Math.min(img.width,img.height);
+      c.width=size; c.height=size;
+      c.getContext('2d').drawImage(img,(img.width-m)/2,(img.height-m)/2,m,m,0,0,size,size);
+      c.toBlob(blob=>{
+        if(!blob){ toast('Couldn\u2019t read that image.'); return; }
+        const setLocal=url=>{
+          if(state.user) state.user.photo=url;
+          const pa=$('#profAvatar');
+          if(pa){ pa.style.padding='0'; pa.style.overflow='hidden'; pa.innerHTML=`<img src="${url}" alt="" style="width:100%;height:100%;object-fit:cover">`; }
+          refreshAuthUI();
+        };
+        if(FBst && FB && FB.auth().currentUser){
+          toast('Uploading photo\u2026');
+          const ref=FBst.ref('avatars/'+FB.auth().currentUser.uid);
+          ref.put(blob,{contentType:'image/jpeg'}).then(()=>ref.getDownloadURL()).then(url=>{
+            setLocal(url);
+            if(FBdb) FBdb.collection('users').doc(FB.auth().currentUser.uid).set({photoURL:url},{merge:true}).catch(()=>{});
+            toast('Profile photo updated.');
+          }).catch(()=>toast('Upload failed \u2014 check the Storage rules are published.'));
+        } else {
+          setLocal(URL.createObjectURL(blob));
+          toast('Photo set for this session \u2014 sign in with Google to save it.');
+        }
+      },'image/jpeg',0.85);
+    };
+    img.onerror=()=>toast('Couldn\u2019t read that image.');
+    img.src=URL.createObjectURL(file);
   }
 });
 
@@ -2155,6 +2245,10 @@ function reportDetail(r){
       ${gmaps?`<a class="btn btn-secondary" href="${gmaps}" target="_blank" rel="noopener">Navigate</a>`:''}
       ${(r.authorId&&r.authorId===myUid())?`<button class="btn btn-ghost" style="color:#D93A3B" data-delreport="${r.id}">Delete</button>`:''}
     </div>
+    ${(r.updates&&r.updates.length)?`<div class="d-sub"><h3>Updates</h3>${r.updates.map(u=>`<div class="post-upd"><b>UPDATE · ${relTime(u.at)}</b>${String(u.text).replace(/</g,'&lt;')}</div>`).join('')}</div>`:''}
+    ${(r.authorId&&r.authorId===myUid())?`<div class="d-sub"><h3>Post an update</h3>
+      <textarea id="repUpdText" style="width:100%;padding:12px 14px;border:1px solid var(--line-2);border-radius:10px;font:inherit;font-size:15px;min-height:70px" placeholder="e.g. A volunteer picked her up — heading to the vet."></textarea>
+      <button class="btn btn-secondary" style="margin-top:10px" data-repupdate="${r.id}">Post Update</button></div>`:''}
     <p style="margin-top:14px;font-size:13px;color:var(--ink-3)">Community report via Baja Connect.</p>`;
 }
 
@@ -2175,7 +2269,7 @@ if(FB){
     if(u && !state.user && FBdb){
       FBdb.collection('users').doc(u.uid).get().then(doc=>{
         const d=doc.exists?doc.data():{};
-        state.user={name:d.name||u.displayName||'Member', hood:d.area||'Baja', lang:d.lang||'English', phone:u.phoneNumber||''};
+        state.user={name:d.name||u.displayName||'Member', hood:d.area||'Baja', lang:d.lang||'English', phone:u.phoneNumber||'', photo:d.photoURL||null, bio:d.bio||''};
         refreshAuthUI();
       }).catch(()=>{});
     }
@@ -2189,6 +2283,7 @@ if(FB){
 <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-auth-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-firestore-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-storage-compat.js"></script>
 <script async src="https://maps.googleapis.com/maps/api/js?key=AIzaSyBDHm4_C_v3KOddp39x8s2VS3JPS_ecCxo&callback=initGMap&loading=async" onerror="gmapsFail()"></script>
 </body>
 </html>
