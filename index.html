@@ -787,6 +787,7 @@ a.btn{text-decoration:none}
 const COLORS = {
   help:   {c:'#F05D5E', t:'#D93A3B', bg:'#FDE9E9', label:'Needs Help'},
   rescue: {c:'#F28C45', t:'#C2661A', bg:'#FDF0E3', label:'In Rescue'},
+  urgent: {c:'#D93A3B', t:'#B02323', bg:'#FDE3E3', label:'URGENT'},
   safe:   {c:'#F4B942', t:'#8F6B00', bg:'#FBF3DC', label:'Safe & Adopted'},
   fund:   {c:'#C94C8C', t:'#A83A73', bg:'#F8E7F0', label:'Fundraiser'},
   event:  {c:'#4F9D83', t:'#337A62', bg:'#E8F3EE', label:'Event'},
@@ -1134,7 +1135,7 @@ function renderMarkers(){
   FUNDRAISERS.forEach(f=>{ if(state.filters.fund) items.push({type:'fund',id:f.id,lat:f.lat,lng:f.lng,name:f.pin,color:COLORS.fund.c}); });
   VETS.forEach(v=>{ if(state.filters.vet) items.push({type:'vetc',id:v.id,lat:v.lat,lng:v.lng,name:v.name,color:v.is24?'#253238':COLORS.vet.c,cross:true}); });
   ORGS.forEach(o=>{ if(state.filters.org) items.push({type:'org',id:o.id,lat:o.lat,lng:o.lng,name:o.name,color:COLORS.org.c}); });
-  REPORTS.forEach(r=>{ if(r.location && state.filters[r.status]) items.push({type:'report',id:r.id,lat:r.location.lat,lng:r.location.lng,name:'Reported '+(ANIMAL_LABEL[r.animal]||'Animal'),color:COLORS[r.status].c}); });
+  REPORTS.forEach(r=>{ if(r.location && state.filters[r.status==='urgent'?'help':r.status]) items.push({type:'report',id:r.id,lat:r.location.lat,lng:r.location.lng,name:'Reported '+(ANIMAL_LABEL[r.animal]||'Animal'),color:COLORS[r.status].c}); });
   items.forEach(m=>{
     const sel=state.selected===m.id, sc=sel?1.25:1;
     const mk=new google.maps.Marker({position:{lat:m.lat,lng:m.lng},map:map,title:m.name,
@@ -1659,9 +1660,9 @@ function setView(v){
 document.querySelectorAll('[data-nav]').forEach(b=>b.addEventListener('click',()=>setView(b.dataset.nav)));
 
 /* ================= REPORT FLOW ================= */
-const report = {step:1, animal:null, situation:null, pin:null, photo:false, sat:false, note:'', contact:'', editId:null, photoPreview:null, _photoBlob:null};
+const report = {step:1, animal:null, situation:null, pin:null, photo:false, sat:false, note:'', contact:'', editId:null, photoPreview:null, _photoBlob:null, status:null};
 let miniMap=null, miniMarker=null;
-function openReport(){ Object.assign(report,{step:1,animal:null,situation:null,pin:null,photo:false,note:'',contact:'',editId:null,photoPreview:null,_photoBlob:null}); $('#reportModal').classList.add('open'); renderReport(); }
+function openReport(){ Object.assign(report,{step:1,animal:null,situation:null,pin:null,photo:false,note:'',contact:'',editId:null,photoPreview:null,_photoBlob:null,status:null}); $('#reportModal').classList.add('open'); renderReport(); }
 function closeReport(){ $('#reportModal').classList.remove('open'); }
 document.addEventListener('click',e=>{ if(e.target.closest('[data-open-report]')) requireAuth(openReport); });
 $('#rmClose').addEventListener('click',closeReport);
@@ -2076,7 +2077,7 @@ document.addEventListener('click',e=>{
       Object.assign(report,{step:1,animal:r.animal||null,situation:r.situation||null,
         pin:r.location?{lat:r.location.lat,lng:r.location.lng}:null,
         photo:!!r.photo,photoPreview:r.photo||null,_photoBlob:null,
-        note:r.note||'',contact:r.contact||'',editId:r.id});
+        note:r.note||'',contact:r.contact||'',editId:r.id,status:r.status||'help'});
       $('#reportModal').classList.add('open'); renderReport(); }
     return; }
   const dr=e.target.closest('[data-delreport]');
@@ -2193,6 +2194,18 @@ function openCrop(srcUrl, opts){
   });
 }
 document.addEventListener('change',e=>{
+  if(e.target && e.target.dataset && e.target.dataset.repstatus){
+    const r=REPORTS.find(x=>x.id===e.target.dataset.repstatus);
+    if(r){ r.status=e.target.value; renderMarkers();
+      if(FBdb && FB && FB.auth().currentUser && !String(r.id).startsWith('local-')){
+        FBdb.collection('reports').doc(r.id).update({status:r.status})
+          .then(()=>toast('Status updated for everyone.'))
+          .catch(()=>toast('Updated here — cloud save failed, try again later.'));
+      } else toast('Status updated.');
+      openDetail('report',r.id);
+    }
+    return;
+  }
   if(!e.target || !e.target.files || !e.target.files[0]) return;
   if(e.target.id==='avatarFile'){
     openCrop(URL.createObjectURL(e.target.files[0]));
@@ -2348,7 +2361,7 @@ function submitReport(note,phone){
     note:note||null,
     contact:phone||null,
     photo:null,
-    status:(report.situation==='stray')?'rescue':'help',
+    status:report.status||'help',
     authorId:(FB&&FB.auth().currentUser)?FB.auth().currentUser.uid:'demo',
     authorName:state.user?state.user.name:'A neighbor',
     createdAt:new Date().toISOString()
@@ -2418,7 +2431,7 @@ function reportDetail(r){
     <div class="d-actions">
       <button class="btn btn-primary" data-auth data-toast="Thank you! Nearby volunteers have been notified.">I Can Help</button>
       ${gmaps?`<a class="btn btn-secondary" href="${gmaps}" target="_blank" rel="noopener">Navigate</a>`:''}
-      ${(r.authorId&&r.authorId===myUid())?`<button class="btn btn-ghost" data-editreport="${r.id}">Edit</button><button class="btn btn-ghost" style="color:#D93A3B" data-delreport="${r.id}">Delete</button>`:''}
+      ${(r.authorId&&r.authorId===myUid())?`<div style="display:flex;align-items:center;gap:10px"><label for="repStatusSel" style="font-size:14px;font-weight:600;flex-shrink:0;color:var(--ink-2)">Status</label><select id="repStatusSel" data-repstatus="${r.id}" style="flex:1;min-width:0;padding:12px 18px;border:1px solid var(--line-2);border-radius:999px;font:inherit;font-size:15px;font-weight:600;background:var(--paper);color:${(COLORS[r.status]||COLORS.help).t}"><option value="help"${r.status==='help'?' selected':''}>Needs Help</option><option value="urgent"${r.status==='urgent'?' selected':''}>URGENT</option><option value="rescue"${r.status==='rescue'?' selected':''}>In Rescue</option><option value="safe"${r.status==='safe'?' selected':''}>Safe &amp; Adopted</option></select></div><div style="display:flex;gap:10px"><button class="btn btn-secondary" style="flex:1" data-editreport="${r.id}">Edit</button><button class="btn btn-secondary" style="flex:1;color:#D93A3B" data-delreport="${r.id}">Delete</button></div>`:''}
     </div>
     ${(r.updates&&r.updates.length)?`<div class="d-sub"><h3>Updates</h3>${r.updates.map(u=>`<div class="post-upd"><b>UPDATE · ${relTime(u.at)}</b>${String(u.text).replace(/</g,'&lt;')}</div>`).join('')}</div>`:''}
     ${(r.authorId&&r.authorId===myUid())?`<div class="d-sub"><h3>Post an update</h3>
